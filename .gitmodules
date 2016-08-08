@@ -1,3 +1,0 @@
-[submodule "python-ardrone"]
-	path = python-ardrone
-	url = https://github.com/brandneb/python-ardrone.git
