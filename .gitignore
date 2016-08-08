@@ -2,4 +2,4 @@
 Icon
 
 # Python stuff
-~.pyc
+*.pyc
