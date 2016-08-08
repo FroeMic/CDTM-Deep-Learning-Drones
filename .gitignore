@@ -1,2 +1,5 @@
 # Ignore OS X folder icon eding with \r
-Icon
+Icon
+
+# Python stuff
+~.pyc
