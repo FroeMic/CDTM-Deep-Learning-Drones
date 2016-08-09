@@ -77,17 +77,50 @@ def __initDrone():
     return drone
 
 def __videoFeed():
+    return
 
-def controlLoop(drone):
+def __controlLoop(drone):
+    '''Gives manual control of the drone to the user'''
     if drone == None:
         printRed("[Error] Drone not initialized")
+
+    stop = False
+    while not stop:
+    	key = drone.getKey()
+        if key == " ":
+            if drone.NavData["demo"][0][2] and not drone.NavData["demo"][0][3]:
+                drone.takeoff()
+            else:
+                drone.land()
+        elif key == "0":	drone.hover()
+        elif key == "w":	drone.moveForward()
+        elif key == "s":	drone.moveBackward()
+        elif key == "a":	drone.moveLeft()
+        elif key == "d":	drone.moveRight()
+        elif key == "q":	drone.turnLeft()
+        elif key == "e":	drone.turnRight()
+        elif key == "7":	drone.turnAngle(-10,1)
+        elif key == "9":	drone.turnAngle( 10,1)
+        elif key == "4":	drone.turnAngle(-45,1)
+        elif key == "6":	drone.turnAngle( 45,1)
+        elif key == "1":	drone.turnAngle(-90,1)
+        elif key == "3":	drone.turnAngle( 90,1)
+        elif key == "8":	drone.moveUp()
+        elif key == "2":	drone.moveDown()
+        elif key == "*":	drone.doggyHop()
+        elif key == "+":	drone.doggyNod()
+        elif key == "-":	drone.doggyWag()
+        elif key != "":		stop = True
 
 
 
 
 def main():
     drone = __initDrone()
+    __controlLoop(drone)        #hand manual control to the user
 
+    sys.exit(EXIT_SUCCESS)
+    
     drone.useDemoMode(True)
     drone.setConfigAllID()
     drone.sdVideo()
