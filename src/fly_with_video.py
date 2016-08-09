@@ -13,8 +13,18 @@ EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
 
 # ------------------------
+# -- MARK: global config variables
+# ------------------------
+verbose = True
+
+# ------------------------
 # -- MARK: Helper Functions
 # ------------------------
+def log(msg):
+    '''Prints a message if in verbose mode'''
+    if verbose:
+        print msg
+
 def printRed(msg):
     '''Prints a message in red font'''
     print "\x1b[0;31m" + msg + "\x1b[0m"
@@ -34,19 +44,49 @@ def raiseError(msg, fatal = False):
 # ------------------------
 # -- MARK: Main Program
 # ------------------------
+def __initDrone():
+    log("\033[0;34;47m")
+    log("      -------------------====+====-------------------    ")
+    log("                          {_| |_}                        ")
+    log("                        /| _|_|_ |\                      ")
+    log("                       ( |/_____\| )                     ")
+    log("                    |--`/_/  |  \_\\'--|                 ")
+    log("                ____   //( ) |    \\\\   ____            ")
+    log("               | ++ |==|\___/ \___/|==| ++ |             ")
+    log("                \__/   |  ___ ___  |   \__/              ")
+    log("                      __\/oo X []\/__                    ")
+    log("                     || [\__/_\__/] ||                   ")
+    log("                    ~~~~           ~~~~                  ")
+    log("")
+    log("                 === Welcome to P3N15 ===         ")
+    log("                  Automous Drone Flight\033[0m")
+    log("")
+    log("initiating startup procedure...")
+
+    drone = ps_drone.Drone()				# Start using drone
+    drone.startup()							# Connects to drone and starts subprocesses
+    drone.reset()							# Always good, at start
+
+    while drone.getBattery()[0] == -1:
+        time.sleep(0.1)		                # Waits until the drone has done its reset
+    time.sleep(0.5)							# Give it some time to fully awake
+
+    log("done")
+    printBlue("Drone online! Battery: " +str(drone.getBattery()[0])+"%  Status: "+str(drone.getBattery()[1]))
+
+    return drone
+
+def __videoFeed():
+
 def controlLoop(drone):
     if drone == None:
         printRed("[Error] Drone not initialized")
 
 
-def main():
-    drone = ps_drone.Drone()
-    drone.startup()
-    drone.reset()
 
-    while (drone.getBattery()[0] == -1):
-        time.sleep(0.1)
-    print "Battery: "+str(drone.getBattery()[0])+"%  "+str(drone.getBattery()[1])
+
+def main():
+    drone = __initDrone()
 
     drone.useDemoMode(True)
     drone.setConfigAllID()
@@ -91,6 +131,4 @@ def main():
             exit(0)
 
 if __name__ == '__main__':
-    raiseError("No data specified", fatal=True)
-    printBlue("Test2")
-    #main()
+    main()
