@@ -3,6 +3,7 @@
 
 import time
 import sys
+import thread
 import ps_drone
 import cv2
 
@@ -50,16 +51,16 @@ def __initDrone():
     log("                          {_| |_}                        ")
     log("                        /| _|_|_ |\                      ")
     log("                       ( |/_____\| )                     ")
-    log("                    |--`/_/  |  \_\\'--|                 ")
-    log("                ____   //( ) |    \\\\   ____            ")
+    log("                    |--`/_/  |  \_\\'--|                  ")
+    log("                ____   //( ) |    \\\\   ____              ")
     log("               | ++ |==|\___/ \___/|==| ++ |             ")
     log("                \__/   |  ___ ___  |   \__/              ")
     log("                      __\/oo X []\/__                    ")
     log("                     || [\__/_\__/] ||                   ")
     log("                    ~~~~           ~~~~                  ")
     log("")
-    log("                 === Welcome to P3N15 ===         ")
-    log("                  Automous Drone Flight\033[0m")
+    log("                 === Welcome to P3N15 ===                ")
+    log("                  Automous Drone Flight                  \033[0m")
     log("")
     log("initiating startup procedure...")
 
@@ -72,12 +73,49 @@ def __initDrone():
     time.sleep(0.5)							# Give it some time to fully awake
 
     log("done")
-    printBlue("Drone online! Battery: " +str(drone.getBattery()[0])+"%  Status: "+str(drone.getBattery()[1]))
-
+    log("Drone online! Battery: " +str(drone.getBattery()[0])+"%  Status: "+str(drone.getBattery()[1]))
     return drone
 
-def __videoFeed():
-    return
+def __videoFeed(threadName, dely, drone):
+    '''Starts video feed from the drone'''
+    if drone == None:
+        printRed("[Error] Drone not initialized")
+
+    drone.sdVideo()
+    drone.frontCam()
+    CDC = drone.ConfigDataCount
+    while CDC == drone.ConfigDataCount:
+        time.sleep(0.0001)
+    #drone.slowVideo()
+    #drone.mp4Video()
+    drone.videoFPS(10)
+    #drone.videoBitrate(20000)
+    drone.startVideo()
+
+    cv2.namedWindow( "Display");
+
+    print 'ready!'
+
+    imcount = drone.VideoImageCount
+    time_tmp = time.time()
+    while True:
+        # wait for next frame
+        while imcount == drone.VideoImageCount:
+            time.sleep(0.01)
+        imcount = drone.VideoImageCount
+
+        t_now = time.time()
+        t_diff = t_now - time_tmp
+        time_tmp = t_now
+        fps = (1 / t_diff) if t_diff > 0 else 0
+
+        mat = drone.VideoImage;
+
+        cv2.rectangle(mat,(180, 30), (0, 0), (0,0,0), -1)
+        cv2.putText(mat,'{: <2} FPS'.format(fps),(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),2)
+        cv2.imshow("Display", mat)
+        cv2.waitKey(1)
+
 
 def __controlLoop(drone):
     '''Gives manual control of the drone to the user'''
@@ -110,8 +148,8 @@ def __controlLoop(drone):
         elif key == "*":	drone.doggyHop()
         elif key == "+":	drone.doggyNod()
         elif key == "-":	drone.doggyWag()
+        elif key == "y":    thread.start_new_thread(__videoFeed,("VideoFeed", 1, drone))
         elif key != "":		stop = True
-
 
 
 
@@ -120,7 +158,7 @@ def main():
     __controlLoop(drone)        #hand manual control to the user
 
     sys.exit(EXIT_SUCCESS)
-    
+
     drone.useDemoMode(True)
     drone.setConfigAllID()
     drone.sdVideo()
