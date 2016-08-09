@@ -76,7 +76,7 @@ def run(drone):
     imcount = drone.VideoImageCount
     time_tmp = time.time()
     while not finished:
-        # wait for next frame
+        # wait for next frame and calculate framerate
         while imcount == drone.VideoImageCount:
             time.sleep(0.01)
         imcount = drone.VideoImageCount
@@ -90,8 +90,6 @@ def run(drone):
 
         cv2.rectangle(frame,(180, 30), (0, 0), (0,0,0), -1)
         cv2.putText(frame,'{: <2} FPS'.format(fps),(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),2)
-        #cv2.imshow("w1", frame)
-        #cv2.waitKey(1)
 
         myframe = numpy.rot90(frame)
         myframe = numpy.flipud(myframe)
@@ -100,10 +98,32 @@ def run(drone):
         pygame.display.flip()
 
         for event in pygame.event.get():
-            print "got event"
+            if event.type == pygame.QUIT:
+                finished = True
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_ESCAPE:
+                    drone.land()
+                    finished = True
+                elif event.key == pygame.K_SPACE:
+                    if drone.NavData["demo"][0][2] and not drone.NavData["demo"][0][3]:
+                        drone.takeoff()
+                    else:
+                        drone.land()
+                else:
+                    drone.hover()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_w:
+                    drone.moveForward()
+                elif event.key == pygame.K_s:
+                    drone.moveBackward()
+                elif event.key == pygame.K_a:
+                    drone.moveLeft()
+                elif event.key == pygame.K_d:
+                    drone.moveRight()
 
     pygame.quit()
     cv2.destroyAllWindows()
+
 
 if __name__ == '__main__':
     drone = P3N15()
