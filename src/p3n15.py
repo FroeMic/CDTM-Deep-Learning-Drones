@@ -61,6 +61,7 @@ def run(drone):
     screen = pygame.display.get_surface()
 
     # config drone video settings
+    ground = False
     drone.sdVideo()
     drone.frontCam()
     CDC = drone.ConfigDataCount
@@ -112,7 +113,10 @@ def run(drone):
                 else:
                     drone.hover()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_w:
+                if event.key == pygame.K_p:
+                    print("Not implemented yet")
+                    # start automatic mode
+                elif event.key == pygame.K_w:
                     drone.moveForward()
                 elif event.key == pygame.K_s:
                     drone.moveBackward()
@@ -120,7 +124,20 @@ def run(drone):
                     drone.moveLeft()
                 elif event.key == pygame.K_d:
                     drone.moveRight()
+                elif event.key == pygame.K_q:
+                    drone.turnLeft()
+                elif event.key == pygame.K_e:
+                    drone.turnRight()
+                elif event.key == pygame.K_UP:
+                    drone.moveUp()
+                elif event.key == pygame.K_DOWN:
+                    drone.moveDown()
+                elif event.key == pygame.K_c:
+                    print ground
+                    ground = not ground
+                    drone.groundVideo(ground)
 
+    drone.shutdown()
     pygame.quit()
     cv2.destroyAllWindows()
 
@@ -128,4 +145,7 @@ def run(drone):
 if __name__ == '__main__':
     drone = P3N15()
     drone.startup()
-    run(drone)
+    try:
+        run(drone)
+    except KeyboardInterrupt:
+        exit(0)
