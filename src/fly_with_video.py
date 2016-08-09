@@ -7,6 +7,17 @@ import thread
 import ps_drone
 import cv2
 
+# =======================================
+#     CDTM AUTONOMOUS DRONE ELECTIVE
+#              August 2016
+#
+# TODOS:
+# * refactor to object orientation
+# * implement proper manual control
+# * drop console output from ui thread
+# * properly end all threads on system exit
+# =======================================
+
 # ------------------------
 # -- MARK: Constants
 # ------------------------
@@ -86,35 +97,36 @@ def __videoFeed(threadName, dely, drone):
     CDC = drone.ConfigDataCount
     while CDC == drone.ConfigDataCount:
         time.sleep(0.0001)
-    #drone.slowVideo()
-    #drone.mp4Video()
+
     drone.videoFPS(10)
-    #drone.videoBitrate(20000)
     drone.startVideo()
 
     cv2.namedWindow( "Display");
 
-    print 'ready!'
-
     imcount = drone.VideoImageCount
     time_tmp = time.time()
     while True:
-        # wait for next frame
-        while imcount == drone.VideoImageCount:
-            time.sleep(0.01)
-        imcount = drone.VideoImageCount
+        try:
+            # wait for next frame
+            while imcount == drone.VideoImageCount:
+                time.sleep(0.01)
+            imcount = drone.VideoImageCount
 
-        t_now = time.time()
-        t_diff = t_now - time_tmp
-        time_tmp = t_now
-        fps = (1 / t_diff) if t_diff > 0 else 0
+            t_now = time.time()
+            t_diff = t_now - time_tmp
+            time_tmp = t_now
+            fps = (1 / t_diff) if t_diff > 0 else 0
 
-        mat = drone.VideoImage;
+            mat = drone.VideoImage;
 
-        cv2.rectangle(mat,(180, 30), (0, 0), (0,0,0), -1)
-        cv2.putText(mat,'{: <2} FPS'.format(fps),(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),2)
-        cv2.imshow("Display", mat)
-        cv2.waitKey(1)
+            cv2.rectangle(mat,(180, 30), (0, 0), (0,0,0), -1)
+            cv2.putText(mat,'{: <2} FPS'.format(fps),(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),2)
+            cv2.imshow("Display", mat)
+            cv2.waitKey(1)
+        except KeyboardInterrupt:
+            # die silently
+            thread.stop()
+
 
 
 def __controlLoop(drone):
@@ -157,49 +169,11 @@ def main():
     drone = __initDrone()
     __controlLoop(drone)        #hand manual control to the user
 
+    drone.shutdown()
+    thread.exit()
+    cv2.destroyAllWindows()
     sys.exit(EXIT_SUCCESS)
 
-    drone.useDemoMode(True)
-    drone.setConfigAllID()
-    drone.sdVideo()
-    drone.frontCam()
-    CDC = drone.ConfigDataCount
-    while CDC == drone.ConfigDataCount:
-        time.sleep(0.0001)
-    #drone.slowVideo()
-    #drone.mp4Video()
-    drone.videoFPS(10)
-    #drone.videoBitrate(20000)
-    drone.startVideo()
-    #drone.showVideo()
-
-    cv2.namedWindow( "Display");
-
-    print 'ready!'
-
-    imcount = drone.VideoImageCount
-    time_temp = time.time()
-    while True:
-        try:
-            # wait for next frame
-            while imcount == drone.VideoImageCount:
-                time.sleep(0.01)
-            imcount = drone.VideoImageCount
-
-            t_now = time.time()
-            t_diff = t_now - time_temp
-            time_temp = t_now
-            fps = (1 / t_diff) if t_diff > 0 else 0
-            print 'frame {}. {: <2} FPS'.format(imcount, fps)
-
-            mat = drone.VideoImage;
-            cv2.imshow("Display", mat)
-            cv2.waitKey(1)
-
-        except KeyboardInterrupt:
-            drone.shutdown()
-            cv2.destroyAllWindows()
-            exit(0)
 
 if __name__ == '__main__':
     main()
