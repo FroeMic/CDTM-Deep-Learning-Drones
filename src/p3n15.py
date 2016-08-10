@@ -22,7 +22,7 @@ class P3N15(Drone):
 
     def __init__(self):
         Drone.__init__(self)
-        self.flightController = FaceController(self)
+        self.flightController = PenisController(self)
         self.camera = P3N15.FRONTCAM
         self.outputImage = None
         self.__nativeImage = True
@@ -99,7 +99,7 @@ class P3N15(Drone):
             self.frontCam()
 
     def getVideoFrame(self):
-        if (self.__nativeImage or not self.outputImage):
+        if (self.__nativeImage or self.outputImage is None):
             return self.VideoImage
         else:
             return self.outputImage
@@ -209,7 +209,10 @@ class PenisController(FlightController):
             if self.drone.VideoImageCount != IMC:
                 IMC = drone.VideoImageCount
                 t_start = time.time()
-                self.drone.outputImage = self.analyzeImage()
+                try:
+                    self.drone.outputImage = self.analyzeImage()
+                except:
+                    print "Error"
                 print "Image Recognition Cycle: ", time.time() - t_start
             time.sleep(0.01)
         else:
@@ -218,6 +221,10 @@ class PenisController(FlightController):
     def analyzeImage(self):
         img = self.drone.VideoImage
 
+        hsl = cv2.cvtColor(img, cv2.COLOR_RGB2HLS_FULL)[:,:,1]
+
+        # enhance contrast
+        hsl = self.clahe.apply(hsl)
         # binary image
         blur = cv2.GaussianBlur(hsl, (9, 9), 100)
         flag, thresh = cv2.threshold(blur, 200, 255, cv2.THRESH_BINARY)
