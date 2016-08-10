@@ -1,0 +1,5 @@
+markers/
+*.pyc
+*.pdf
+depend
+take_photo

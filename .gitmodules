@@ -1,0 +1,4 @@
+[submodule "libkoki"]
+	path = libkoki
+	url = git@github.com:jmorse/libkoki.git
+	branch = sse

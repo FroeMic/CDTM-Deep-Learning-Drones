@@ -1,0 +1,11 @@
+*.o
+lib/
+test/example
+test/realtime
+test/debug_img
+test/marker_info
+*~
+.ditz-config
+bugs/html/
+.sconsign.dblite
+libkoki.pc
