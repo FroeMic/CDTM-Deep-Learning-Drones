@@ -14,9 +14,14 @@ from ps_drone import Drone
 # MARK Drone Class
 class P3N15(Drone):
 
+    FRONTCAM = 0
+    GROUNDCAM = 1
+
     def __init__(self):
         Drone.__init__(self)
         self.flightController = FlightController(self)
+        self.camera = P3N15.FRONTCAM
+        self.outputImage = None
         self.__printBanner()
 
     # ----------------------
@@ -47,14 +52,55 @@ class P3N15(Drone):
     # ----------------------
     def startup(self):
         '''configures and starts the drone'''
-        Drone.startup(self)						 # Connects to drone and starts subprocesses
-        Drone.reset(self)							         # Always good, at start
+        Drone.startup(self)						# Connects to drone and starts subprocesses
+        Drone.reset(self)						# Always good, at start
 
-        while self.getBattery()[0] == -1:
+        while (Drone.getBattery(self)[0] == -1):
             time.sleep(0.1)		                # Waits until the drone has done its reset
+        print Drone.getBattery(self)
         time.sleep(0.5)							# Give it some time to fully awake
 
+
+    def  shutdown(self):
+        ''' shutsdown the drone and ends all threads'''
+        self.endAutonomousFlight()
+        Drone.shutdown(self)
+
+    def initCamera(self, camera = FRONTCAM):
+        Drone.setConfigAllID(self)                                  # Go to multiconfiguration-mode
+        Drone.sdVideo(self)                                         # Choose lower resolution (hdVideo() for...well, guess it)
+        Drone.saveVideo(self,False)
+
+        if camera == P3N15.FRONTCAM:
+            self.camera = camera
+            Drone.frontCam(self)
+        elif camera == P3N15.GROUNDCAM:
+            self.camera = camera
+            Drone.groundCam(self)
+        else:
+            print "[Error] Invalid camera (%d) specified." %(camera)
+            return
+
+        CDC = self.ConfigDataCount
+        while CDC == self.ConfigDataCount:
+            time.sleep(0.0001)                                      #Wait until it is done (after resync is done)
+        Drone.startVideo(self)                                      # Start video-function
+
+    def toggleCamera(self):
+        print "toggleCamera"
+        drone.groundVideo(True)
+        if self.camera == P3N15.FRONTCAM:
+            print "Groundcam"
+            self.camera = P3N15.GROUNDCAM
+            self.groundCam()
+        elif self.camera == P3N15.GROUNDCAM:
+            print "frontcam"
+            self.camera = P3N15.FRONTCAM
+            self.frontCam()
+
+
     def startAutonomousFlight(self):
+        '''Hands control to the flight controller'''
         if self.flightController == None:
             print("[Error] Cannot start autonomous flight. No flight controller specified!")
             return
@@ -64,7 +110,9 @@ class P3N15(Drone):
             self.flightController.start()
 
     def endAutonomousFlight(self):
-        self.flightController.finished = True
+        '''Ends the autonomous flight by terminating the flight controller'''
+        if self.flightController != None:
+            self.flightController.terminate()
 
 # Mark: Controller Class
 class FlightController(threading.Thread):
@@ -104,15 +152,7 @@ def run(drone):
     screen = pygame.display.get_surface()
 
     # config drone video settings
-    ground = False
-    drone.sdVideo()
-    drone.frontCam()
-    CDC = drone.ConfigDataCount
-    while CDC == drone.ConfigDataCount:
-        time.sleep(0.0001)
-
-    drone.videoFPS(10)
-    drone.startVideo()
+    drone.initCamera()
 
     cv2.namedWindow("w1");
 
@@ -184,9 +224,7 @@ def run(drone):
                     elif event.key == pygame.K_DOWN:
                         drone.moveDown()
                     elif event.key == pygame.K_c:
-                        print ground
-                        ground = not ground
-                        drone.groundVideo(ground)
+                        drone.toggleCamera()
 
         if not aut:
              #handle continues key_input
@@ -198,14 +236,109 @@ def run(drone):
 
 
     drone.shutdown()
+    time.sleep(1)
     pygame.quit()
     cv2.destroyAllWindows()
 
+def capture(drone):
+    # init pygame
+    drone.initCamera(camera = P3N15.GROUNDCAM)
+
+    pygame.init()
+    pygame.display.set_caption("P3N15 Demo")
+    screen = pygame.display.set_mode((640, 360))
+    screen = pygame.display.get_surface()
+
+
+    ##### And action !
+    print "Use <space> to capture groundcamera frame, any other key to stop"
+    IMC =    drone.VideoImageCount                               # Number of encoded videoframes
+    stop =   False
+
+    while True:
+        if handleEvents(drone):
+            break
+
+        if drone.VideoImageCount != IMC:                        # no new frame available
+            IMC = drone.VideoImageCount
+            updateUI(drone, screen)
+
+
+def updateUI(drone, screen):
+    frame = prepareFrame(drone)
+    screen.blit(frame, (0,0))
+    pygame.display.flip()
+
+def prepareFrame(drone):
+    frame = numpy.rot90(drone.VideoImage)
+    frame = numpy.flipud(frame)
+    return pygame.surfarray.make_surface(frame)
+
+def handleEvents(drone):
+    finished = False
+
+    for event in pygame.event.get():
+        # exit if necessary
+        if (event.type == pygame.QUIT or
+            (event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE)):
+            return True
+
+        # handle keyup
+        if event.type == pygame.KEYUP:
+            handleKeyUp(event.key, drone)
+        # handle keydown
+        elif event.type == pygame.KEYDOWN:
+            handleKeyDown(event.key, drone)
+
+        # handle turns seperately
+        handleTurns(drone)
+
+    return finished
+
+def handleKeyUp(key, drone):
+    if key == pygame.K_ESCAPE:
+        drone.land()
+        finished = True
+    elif key == pygame.K_SPACE:
+        if drone.NavData["demo"][0][2] and not drone.NavData["demo"][0][3]:
+            drone.takeoff()
+        else:
+            drone.land()
+    elif key == pygame.K_p:
+        drone.startAutonomousFlight()
+    else:
+        drone.hover()
+
+def handleKeyDown(key, drone):
+    if key == pygame.K_w:
+        drone.moveForward()
+    elif key == pygame.K_s:
+        drone.moveBackward()
+    elif key == pygame.K_a:
+        drone.moveLeft()
+    elif key == pygame.K_d:
+        drone.moveRight()
+    elif key == pygame.K_UP:
+        drone.moveUp()
+    elif key == pygame.K_DOWN:
+        drone.moveDown()
+    elif key == pygame.K_c:
+        drone.toggleCamera()
+    elif key == pygame.K_m:
+        filename = "img/" + str(drone.VideoDecodeTimeStamp) + '.png'
+        cv2.imwrite(filename, drone.VideoImage)
+        print "saved {}".format(filename)
+
+def handleTurns(drone):
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_q]:
+        drone.turnLeft()
+    elif keys[pygame.K_e]:
+        drone.turnRight()
 
 if __name__ == '__main__':
     drone = P3N15()
     drone.startup()
-    try:
-        run(drone)
-    except KeyboardInterrupt:
-        exit(0)
+    drone.useDemoMode(True)
+    capture(drone)
+    #run(drone)
