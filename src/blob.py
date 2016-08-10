@@ -10,7 +10,7 @@ def main(argv):
     if len(argv) != 0:
         file = argv[0]
 
-    orig = cv2.imread('original.img',0)
+    orig = cv2.imread('original.png',0)
     img = cv2.imread(file)
 
     sift = cv2.SIFT()
