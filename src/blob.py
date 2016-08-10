@@ -3,6 +3,8 @@
 
 import time, sys
 import cv2
+import numpy as np
+import math
 from matplotlib import pyplot as plt
 
 def main(argv):
@@ -10,63 +12,64 @@ def main(argv):
     if len(argv) != 0:
         file = argv[0]
 
-    orig = cv2.imread('original.png',0)
-    img = cv2.imread(file)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
-    sift = cv2.SIFT()
+    #while cv2.waitKey(20) & 0xFF != ord("q"):
+    if True:
+        img = cv2.imread(file)
+        hsl = cv2.cvtColor(img, cv2.COLOR_RGB2HLS_FULL)[:,:,1]
 
-    kp1, des1 = sift.detectAndCompute(orig, None)
-    kp2, des2 = sift.detectAndCompute(img, None)
+        # enhance contrast
+        hsl = clahe.apply(hsl)
 
-#    surf_detector = cv2.FeatureDetector_create("SURF")
-#    surf_descriptor = cv2.DescriptorExtractor_create("SURF")
-#    kp, des = surf_detector.detectAndCompute(img,None)
-#    cv2.imshow('SURF', cv2.drawKeypoints(img, kp, None, (255,0,0), 4))
+        # binary image
+        blur = cv2.GaussianBlur(hsl, (9,9), 100)
+        flag, thresh = cv2.threshold(blur,200,255,cv2.THRESH_BINARY)
 
-    FLANN_INDEX_KDTREE = 0
-    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks = 50)
+        #get biggest contour
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
+        # clip to rotated rectangle
+        rect = cv2.minAreaRect(contour)
+        box = cv2.cv.BoxPoints(rect)
+        box = np.int0(box)
+        mask = 0 * hsl
+        cv2.drawContours(mask, [box], -1, (255), -1)
+        hsl = cv2.bitwise_and(hsl, mask) + cv2.bitwise_not(0*mask, mask)
 
-    matches = flann.knnMatch(des1,des2,k=2)
+        # binary image
+        blur = cv2.GaussianBlur(hsl, (9,9), 100)
+        flag, thresh = cv2.threshold(blur,200,255,cv2.THRESH_BINARY)
+        thresh = 255-thresh
+        thresh_annot = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+        cv2.drawContours(thresh_annot, [box], -1, (0,0,255), 1)
 
-    # store all the good matches as per Lowe's ratio test.
-    good = []
-    for m,n in matches:
-        if m.distance < 0.7*n.distance:
-            good.append(m)
+        # Get biggest contour
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
+        #cv2.drawContours(thresh_annot, contour, -1, (255,0,0), cv2.CV_AA)
 
-    MIN_MATCH_COUNT = 10
-    if len(good) > MIN_MATCH_COUNT:
-        src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+        # Fit a line (to get angle)
+        rows,cols = thresh.shape[:2]
+        [vx,vy,x,y] = cv2.fitLine(contour, cv2.cv.CV_DIST_L2,0,0.01,0.01)
+        lefty = int((-x*vy/vx) + y)
+        righty = int(((cols-x)*vy/vx)+y)
+        cv2.line(thresh_annot,(cols-1,righty),(0,lefty),(0,255,0),2)
+        angle = math.atan2(vy, vx)
 
-        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-        matchesMask = mask.ravel().tolist()
+        # compute the center of the contour
+        M = cv2.moments(contour)
+        X = int(M["m10"] / M["m00"])
+        Y = int(M["m01"] / M["m00"])
+        cv2.circle(thresh_annot, (X, Y), 8, (0, 0, 255), -1)
 
-        h, w = img1.shape
-        pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
-        dst = cv2.perspectiveTransform(pts, M)
+        print "angle: {}, position: {}, {}".format(angle, X, Y)
 
-        img2 = cv2.polylines(img2, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
+        cv2.imshow('thresh', thresh_annot)
+        #cv2.imshow('img', img)
 
-    else:
-        print "Not enough matches are found - %d/%d" % (len(good), MIN_MATCH_COUNT)
-        matchesMask = None
-
-    draw_params = dict(matchColor=(0, 255, 0),  # draw matches in green color
-                       singlePointColor=None,
-                       matchesMask=matchesMask,  # draw only inliers
-                       flags=2)
-
-    img3 = cv2.drawMatches(img1, kp1, img2, kp2, good, None, **draw_params)
-
-    cv2.imshow('img', img3)
-    #plt.imshow(img3, 'gray'), plt.show()
-
-    while cv2.waitKey(1) & 0xFF != ord("q"):
-        pass
+        cv2.waitKey(0)
 
     cv2.destroyAllWindows()
 
