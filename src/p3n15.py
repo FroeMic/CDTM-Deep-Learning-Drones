@@ -11,7 +11,10 @@ from ps_drone import Drone
 #              August 2016
 # =======================================
 
+# MARK Drone Class
 class P3N15(Drone):
+
+    self.flightController =
 
     def __init__(self):
         Drone.__init__(self)
@@ -53,8 +56,22 @@ class P3N15(Drone):
             time.sleep(0.1)		                # Waits until the drone has done its reset
         time.sleep(0.5)							# Give it some time to fully awake
 
+# Mark: Controller Class
+class FlightController(object):
+
+    self.drone = None
+    self.finished = False
+
+    __init__(self, drone):
+        self.drone = drone
+
+    def run()
+        while not finished:
+            print "Autonomous Flight"
 
 def run(drone):
+    aut = False
+
     pygame.init()
     pygame.display.set_caption("P3N15 Demo")
     screen = pygame.display.set_mode((640, 360))
@@ -98,44 +115,62 @@ def run(drone):
         screen.blit(surface, (0,0))
         pygame.display.flip()
 
+        # handle events
         for event in pygame.event.get():
+            # handle quit
             if event.type == pygame.QUIT:
                 finished = True
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_ESCAPE:
-                    drone.land()
-                    finished = True
-                elif event.key == pygame.K_SPACE:
-                    if drone.NavData["demo"][0][2] and not drone.NavData["demo"][0][3]:
-                        drone.takeoff()
-                    else:
+
+            if aut and (event.type == pygame.KEYUP or event.type == pygame.KEYDOWN):
+                print "Not Aut"
+                aut = False
+
+            if not aut:
+                # handle keyup
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_ESCAPE:
                         drone.land()
-                else:
-                    drone.hover()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    print("Not implemented yet")
-                    # start automatic mode
-                elif event.key == pygame.K_w:
-                    drone.moveForward()
-                elif event.key == pygame.K_s:
-                    drone.moveBackward()
-                elif event.key == pygame.K_a:
-                    drone.moveLeft()
-                elif event.key == pygame.K_d:
-                    drone.moveRight()
-                elif event.key == pygame.K_q:
-                    drone.turnLeft()
-                elif event.key == pygame.K_e:
-                    drone.turnRight()
-                elif event.key == pygame.K_UP:
-                    drone.moveUp()
-                elif event.key == pygame.K_DOWN:
-                    drone.moveDown()
-                elif event.key == pygame.K_c:
-                    print ground
-                    ground = not ground
-                    drone.groundVideo(ground)
+                        finished = True
+                    elif event.key == pygame.K_SPACE:
+                        if drone.NavData["demo"][0][2] and not drone.NavData["demo"][0][3]:
+                            drone.takeoff()
+                        else:
+                            drone.land()
+                    elif event.key == pygame.K_p:
+                        print "aut true"
+                        aut = True
+                    else:
+                        drone.hover()
+                # handle keydown
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_w:
+                        drone.moveForward()
+                    elif event.key == pygame.K_s:
+                        drone.moveBackward()
+                    elif event.key == pygame.K_a:
+                        drone.moveLeft()
+                    elif event.key == pygame.K_d:
+                        drone.moveRight()
+                    elif event.key == pygame.K_UP:
+                        drone.moveUp()
+                    elif event.key == pygame.K_DOWN:
+                        drone.moveDown()
+                    elif event.key == pygame.K_c:
+                        print ground
+                        ground = not ground
+                        drone.groundVideo(ground)
+
+        if not aut:
+             #handle continues key_input
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_q]:
+                drone.turnLeft()
+            elif keys[pygame.K_e]:
+                drone.turnRight()
+
+        if aut:
+            print "Autonomous Flight"
+
 
     drone.shutdown()
     pygame.quit()

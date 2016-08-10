@@ -42,7 +42,7 @@ while not stop:
     while drone.VideoImageCount == IMC: time.sleep(0.01)     # Wait until the next video-frame
     IMC = drone.VideoImageCount
     key = drone.getKey()                                     # Gets a pressed key
-    if key==" ":	
+    if key==" ":
         if ground:              ground = False
         else:                   ground = True
         drone.groundVideo(ground)                            # Toggle between front- and groundcamera. Hint: options work for all videocommands
