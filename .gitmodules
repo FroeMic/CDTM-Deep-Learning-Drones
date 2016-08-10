@@ -1,4 +1,4 @@
-[submodule "libkoki"]
-	path = libkoki
+[submodule "src/koki/libkoki"]
+	path = src/koki/libkoki
 	url = git@github.com:jmorse/libkoki.git
-	branch = sse
+	branch = speed_funk
