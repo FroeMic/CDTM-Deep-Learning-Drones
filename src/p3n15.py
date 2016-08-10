@@ -21,9 +21,10 @@ class P3N15(Drone):
 
     def __init__(self):
         Drone.__init__(self)
-        self.flightController = FlightController(self)
+        self.flightController = FaceController(self)
         self.camera = P3N15.FRONTCAM
-        self.__outputImage = None
+        self.outputImage = None
+        self.__nativeImage = True
         self.__printBanner()
 
     # ----------------------
@@ -97,12 +98,11 @@ class P3N15(Drone):
             self.frontCam()
 
     def getVideoFrame(self):
-        if self.__outputImage == None:
+        if (self.__nativeImage or not self.outputImage):
             return self.VideoImage
         else:
-            img = self.__outputImage
-            self.__outputImage = None
-            return img
+            return self.outputImage
+
 
     def startAutonomousFlight(self):
         '''Hands control to the flight controller'''
@@ -113,17 +113,22 @@ class P3N15(Drone):
             print "Start Thread"
             self.flightController = self.flightController.newInstance()
             self.flightController.start()
+            self.__nativeImage = False
 
     def endAutonomousFlight(self):
         '''Ends the autonomous flight by terminating the flight controller'''
+        self.__nativeImage = True
+        self.outputImage = None
         if self.flightController != None:
             self.flightController.terminate()
 
 # ------------------------
-# -- MARK: Controller Class
+# -- MARK: Controller Classes
 # ------------------------
+
+# Base class
 class FlightController(threading.Thread):
-    ''' Base class to control the control the drone autonomously.
+    ''' Base class to control the drone autonomously.
 
         Implement
             * newInstance(),
@@ -146,14 +151,53 @@ class FlightController(threading.Thread):
         else:
             print "Ended Autonomous Flight after %d cycles" %(i)
 
-
     def terminate(self):
         self.finished = True
+
+# Face controller class
+class FaceController(FlightController):
+    ''' Controller to follow a face autonomously.'''
+    def __init__(self, drone):
+        FlightController.__init__(self, drone)
+        self.face_cascade = cv2.CascadeClassifier('face_detection_playground/haarcascade_frontalface_default.xml')
+
+    def newInstance(self):
+        return FaceController(self.drone)
+
+    def run(self):
+        IMC = self.drone.VideoImageCount
+        while not self.finished:
+            if self.drone.VideoImageCount != IMC:
+                IMC = drone.VideoImageCount
+                t_start = time.time()
+                self.drone.outputImage = self.analyzeImage()
+                print "Image Recognition Cycle: ",  time.time() - t_start
+            time.sleep(0.01)
+        else:
+            print "Ended Autonomous Face Flight"
+
+    def analyzeImage(self):
+        img = self.drone.VideoImage
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
+        for (x,y,w,h) in faces:
+            cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
+
+        if len(faces) > 0:
+            filename = "img/" + str(drone.VideoDecodeTimeStamp) + '.png'
+            cv2.imwrite(filename, img)
+            print("Saved Image")
+
+        return img
+
+
+
 
 # ------------------------
 # -- MARK: Main Program Cycle
 # ------------------------
-def run(drone):
+def run(drone, cycleTime = 0.01):
     # init pygame
     pygame.init()
     pygame.display.set_caption("P3N15 Demo")
@@ -171,6 +215,8 @@ def run(drone):
         if drone.VideoImageCount != IMC:                        # no new frame available
             IMC = drone.VideoImageCount
             updateUI(drone, screen)
+
+        time.sleep(cycleTime)
 
     # Goodbye
     drone.shutdown()
@@ -250,9 +296,9 @@ def handleKeyDown(key, drone):
 def handleTurns(drone):
     keys = pygame.key.get_pressed()
     if keys[pygame.K_q]:
-        drone.turnLeft()
+        drone.turnLeft(1.0)
     elif keys[pygame.K_e]:
-        drone.turnRight()
+        drone.turnRight(1.0)
 
 if __name__ == '__main__':
     drone = P3N15()
