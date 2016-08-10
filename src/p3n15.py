@@ -11,7 +11,9 @@ from ps_drone import Drone
 #              August 2016
 # =======================================
 
-# MARK Drone Class
+# ------------------------
+# -- MARK: Drone Class
+# ------------------------
 class P3N15(Drone):
 
     FRONTCAM = 0
@@ -21,7 +23,7 @@ class P3N15(Drone):
         Drone.__init__(self)
         self.flightController = FlightController(self)
         self.camera = P3N15.FRONTCAM
-        self.outputImage = None
+        self.__outputImage = None
         self.__printBanner()
 
     # ----------------------
@@ -87,17 +89,20 @@ class P3N15(Drone):
         Drone.startVideo(self)                                      # Start video-function
 
     def toggleCamera(self):
-        print "toggleCamera"
-        drone.groundVideo(True)
         if self.camera == P3N15.FRONTCAM:
-            print "Groundcam"
             self.camera = P3N15.GROUNDCAM
             self.groundCam()
         elif self.camera == P3N15.GROUNDCAM:
-            print "frontcam"
             self.camera = P3N15.FRONTCAM
             self.frontCam()
 
+    def getVideoFrame(self):
+        if self.__outputImage == None:
+            return self.VideoImage
+        else:
+            img = self.__outputImage
+            self.__outputImage = None
+            return img
 
     def startAutonomousFlight(self):
         '''Hands control to the flight controller'''
@@ -114,7 +119,9 @@ class P3N15(Drone):
         if self.flightController != None:
             self.flightController.terminate()
 
-# Mark: Controller Class
+# ------------------------
+# -- MARK: Controller Class
+# ------------------------
 class FlightController(threading.Thread):
     ''' Base class to control the control the drone autonomously.
 
@@ -143,115 +150,17 @@ class FlightController(threading.Thread):
     def terminate(self):
         self.finished = True
 
+# ------------------------
+# -- MARK: Main Program Cycle
+# ------------------------
 def run(drone):
-    aut = False
-
-    pygame.init()
-    pygame.display.set_caption("P3N15 Demo")
-    screen = pygame.display.set_mode((640, 360))
-    screen = pygame.display.get_surface()
-
-    # config drone video settings
-    drone.initCamera()
-
-    cv2.namedWindow("w1");
-
-    finished = False
-    imcount = drone.VideoImageCount
-    time_tmp = time.time()
-    while not finished:
-        # wait for next frame and calculate framerate
-        while imcount == drone.VideoImageCount:
-            time.sleep(0.01)
-        imcount = drone.VideoImageCount
-
-        t_now = time.time()
-        t_diff = t_now - time_tmp
-        time_tmp = t_now
-        fps = (1 / t_diff) if t_diff > 0 else 0
-
-        frame = drone.VideoImage;
-
-        cv2.rectangle(frame,(180, 30), (0, 0), (0,0,0), -1)
-        cv2.putText(frame,'{: <2} FPS'.format(fps),(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),2)
-
-        myframe = numpy.rot90(frame)
-        myframe = numpy.flipud(myframe)
-        surface = pygame.surfarray.make_surface(myframe)
-        screen.blit(surface, (0,0))
-        pygame.display.flip()
-
-        # handle events
-        for event in pygame.event.get():
-            # handle quit
-            if event.type == pygame.QUIT:
-                finished = True
-
-            if aut and (event.type == pygame.KEYUP or event.type == pygame.KEYDOWN):
-                print "Not Aut"
-                drone.endAutonomousFlight()
-                aut = False
-
-            if not aut:
-                # handle keyup
-                if event.type == pygame.KEYUP:
-                    if event.key == pygame.K_ESCAPE:
-                        drone.land()
-                        finished = True
-                    elif event.key == pygame.K_SPACE:
-                        if drone.NavData["demo"][0][2] and not drone.NavData["demo"][0][3]:
-                            drone.takeoff()
-                        else:
-                            drone.land()
-                    elif event.key == pygame.K_p:
-                        print "aut true"
-                        aut = True
-                        drone.startAutonomousFlight()
-                    else:
-                        drone.hover()
-                # handle keydown
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_w:
-                        drone.moveForward()
-                    elif event.key == pygame.K_s:
-                        drone.moveBackward()
-                    elif event.key == pygame.K_a:
-                        drone.moveLeft()
-                    elif event.key == pygame.K_d:
-                        drone.moveRight()
-                    elif event.key == pygame.K_UP:
-                        drone.moveUp()
-                    elif event.key == pygame.K_DOWN:
-                        drone.moveDown()
-                    elif event.key == pygame.K_c:
-                        drone.toggleCamera()
-
-        if not aut:
-             #handle continues key_input
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_q]:
-                drone.turnLeft()
-            elif keys[pygame.K_e]:
-                drone.turnRight()
-
-
-    drone.shutdown()
-    time.sleep(1)
-    pygame.quit()
-    cv2.destroyAllWindows()
-
-def capture(drone):
     # init pygame
-    drone.initCamera(camera = P3N15.GROUNDCAM)
-
     pygame.init()
     pygame.display.set_caption("P3N15 Demo")
     screen = pygame.display.set_mode((640, 360))
     screen = pygame.display.get_surface()
 
-
-    ##### And action !
-    print "Use <space> to capture groundcamera frame, any other key to stop"
+    # ==> Action!
     IMC =    drone.VideoImageCount                               # Number of encoded videoframes
     stop =   False
 
@@ -263,6 +172,9 @@ def capture(drone):
             IMC = drone.VideoImageCount
             updateUI(drone, screen)
 
+    # Goodbye
+    drone.shutdown()
+    pygame.quit()
 
 def updateUI(drone, screen):
     frame = prepareFrame(drone)
@@ -270,7 +182,12 @@ def updateUI(drone, screen):
     pygame.display.flip()
 
 def prepareFrame(drone):
-    frame = numpy.rot90(drone.VideoImage)
+    frame = drone.getVideoFrame()
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    cv2.rectangle(frame,(240, 30), (0, 0), (0,0,0), -1)
+    cv2.putText(frame,"P3N15: Command Interface",(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),2)
+
+    frame = numpy.rot90(frame)
     frame = numpy.flipud(frame)
     return pygame.surfarray.make_surface(frame)
 
@@ -288,6 +205,7 @@ def handleEvents(drone):
             handleKeyUp(event.key, drone)
         # handle keydown
         elif event.type == pygame.KEYDOWN:
+            drone.endAutonomousFlight()
             handleKeyDown(event.key, drone)
 
         # handle turns seperately
@@ -340,5 +258,5 @@ if __name__ == '__main__':
     drone = P3N15()
     drone.startup()
     drone.useDemoMode(True)
-    capture(drone)
-    #run(drone)
+    drone.initCamera(camera = P3N15.GROUNDCAM)
+    run(drone)
