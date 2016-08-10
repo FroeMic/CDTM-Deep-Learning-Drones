@@ -1,6 +1,6 @@
 import time
 import sys
-import thread
+import threading
 import cv2
 import pygame
 import numpy
@@ -14,12 +14,10 @@ from ps_drone import Drone
 # MARK Drone Class
 class P3N15(Drone):
 
-    self.flightController =
-
     def __init__(self):
         Drone.__init__(self)
+        self.flightController = FlightController(self)
         self.__printBanner()
-
 
     # ----------------------
     # -- Private Methods
@@ -56,18 +54,46 @@ class P3N15(Drone):
             time.sleep(0.1)		                # Waits until the drone has done its reset
         time.sleep(0.5)							# Give it some time to fully awake
 
+    def startAutonomousFlight(self):
+        if self.flightController == None:
+            print("[Error] Cannot start autonomous flight. No flight controller specified!")
+            return
+        else:
+            print "Start Thread"
+            self.flightController = self.flightController.newInstance()
+            self.flightController.start()
+
+    def endAutonomousFlight(self):
+        self.flightController.finished = True
+
 # Mark: Controller Class
-class FlightController(object):
+class FlightController(threading.Thread):
+    ''' Base class to control the control the drone autonomously.
 
-    self.drone = None
-    self.finished = False
-
-    __init__(self, drone):
+        Implement
+            * newInstance(),
+            * run()
+            * terminate()
+        in all subclasses.
+    '''
+    def __init__(self, drone):
+        threading.Thread.__init__(self)
         self.drone = drone
+        self.finished = False
 
-    def run()
-        while not finished:
-            print "Autonomous Flight"
+    def newInstance(self):
+        return FlightController(self.drone)
+
+    def run(self):
+        i = 0
+        while not self.finished:
+            i = i + 1
+        else:
+            print "Ended Autonomous Flight after %d cycles" %(i)
+
+
+    def terminate(self):
+        self.finished = True
 
 def run(drone):
     aut = False
@@ -123,6 +149,7 @@ def run(drone):
 
             if aut and (event.type == pygame.KEYUP or event.type == pygame.KEYDOWN):
                 print "Not Aut"
+                drone.endAutonomousFlight()
                 aut = False
 
             if not aut:
@@ -139,6 +166,7 @@ def run(drone):
                     elif event.key == pygame.K_p:
                         print "aut true"
                         aut = True
+                        drone.startAutonomousFlight()
                     else:
                         drone.hover()
                 # handle keydown
@@ -167,9 +195,6 @@ def run(drone):
                 drone.turnLeft()
             elif keys[pygame.K_e]:
                 drone.turnRight()
-
-        if aut:
-            print "Autonomous Flight"
 
 
     drone.shutdown()
