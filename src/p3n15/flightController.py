@@ -164,13 +164,17 @@ class PenisController(FlightController):
 
                     self.drone.outputImage, dyaw, dist = self.analyzeImage(self.drone.VideoImage)
 
+
                     if dyaw is not None:
                         #yaw_int += (yaw_ist - yaw_soll) * t_diff
-                        #dyaw -= math.pi/2
+
+                        dyaw -= math.pi/2
                         if dyaw > math.pi:
                             dyaw -= 2*math.pi
                         if dyaw < -math.pi:
                             dyaw += 2*math.pi
+
+                        print "angle: {}, dist: {}".format(dyaw * 180.0 / math.pi, dist)
 
                         r_diff_to_last_time = dyaw - pos_r_ist
                         pos_r_vel = 0.99 * pos_r_vel + 0.01 * r_diff_to_last_time
@@ -182,8 +186,8 @@ class PenisController(FlightController):
                         pos_d_ist = dist
 
                     #print "Image Recognition Cycle: ", time.time() - t_start
-                except Exception as err:
-                    print "Error", err
+                except:
+                    print sys.exc_traceback
 
             if self.drone.NavDataCount != NAVC:
                 # new nav data arrived
@@ -197,7 +201,7 @@ class PenisController(FlightController):
                 try:
                     #pos_r_vel = self.drone.NavData["raw_measures"][1][2] # gyro_z, filtered (LSBs)
 
-                    print pos_r_vel
+                    #print pos_r_vel
 
                     pos_r_err = pos_r_soll - pos_r_ist
                     pos_d_err = pos_d_soll - pos_d_ist
@@ -211,10 +215,10 @@ class PenisController(FlightController):
 
                     self.drone.move(pos_x_out, pos_y_out, 0, pos_r_out)
 
-                    cv2.waitKey(1)
+                except:
+                    print sys.exc_info()
 
-                except KeyError:
-                    pass
+            cv2.waitKey(20)
 
         else:
             print "Ended Autonomous Face Flight"
@@ -295,8 +299,6 @@ class PenisController(FlightController):
         cv2.line(annot, (cols - 1, righty), (0, lefty), (0, 255, 0), 2)
         angle = math.atan2(vy, vx)
 
-        # todo: check on which side of the line our arrow is
-
         # mask inner contour
         mask = numpy.zeros(thresh.shape, numpy.uint8)
         cv2.drawContours(mask, [contour], -1, (255), -1)
@@ -330,7 +332,9 @@ class PenisController(FlightController):
         #print "angle: {}, position: {}, {}".format(angle, X, Y)
 
         imgH, imgW, _ = img.shape
-        dist = math.hypot(X - imgW/2.0, Y - imgH/2.0)
+        x = x - imgW / 2.0
+        y = y - imgH / 2.0
+        dist = math.hypot(x, y)
 
         #print dist
 
@@ -341,6 +345,8 @@ class PenisController(FlightController):
         line = indicatorLine
 
         direction = self.calcVectorDirection(circleCenter, boundingCenter, indicatorLine)
+
+        #print "angle: {}, position: {}, {}".format(angle * 180.0 / math.pi, x, y)
 
         return annot, angle, dist
 

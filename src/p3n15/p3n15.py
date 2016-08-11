@@ -165,14 +165,17 @@ def updateUI(drone, screen):
     pygame.display.flip()
 
 def prepareFrame(drone):
-    frame = drone.getVideoFrame()
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    cv2.rectangle(frame,(240, 30), (0, 0), (0,0,0), -1)
-    cv2.putText(frame,"P3N15: Command Interface",(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),2)
+    try:
+        frame = drone.getVideoFrame()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        cv2.rectangle(frame,(240, 30), (0, 0), (0,0,0), -1)
+        cv2.putText(frame,"P3N15: Command Interface",(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255,255,255),2)
 
-    frame = numpy.rot90(frame)
-    frame = numpy.flipud(frame)
-    return pygame.surfarray.make_surface(frame)
+        frame = numpy.rot90(frame)
+        frame = numpy.flipud(frame)
+        return pygame.surfarray.make_surface(frame)
+    except:
+        return None
 
 def handleEvents(drone):
     finished = False
