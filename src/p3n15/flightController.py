@@ -276,19 +276,16 @@ class PenisController(FlightController):
             print "could not find contour of male sign"
             cv2.imshow('info', annot)
             return annot, None, None
-        cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
+        #cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
 
         # get center of the full shape
         rect = cv2.minAreaRect(contour)
-        center_of_shape = rect[0]
+        boundingCenter = rect[0]
 
         # Fit a line (to get (ambiguous) angle)
         rows, cols = thresh.shape[:2]
         indicatorLine = cv2.fitLine(contour, cv2.cv.CV_DIST_L2, 0, 0.01, 0.01)
         [vx, vy, x, y] = indicatorLine
-        lefty = int((-x * vy / vx) + y)
-        righty = int(((cols - x) * vy / vx) + y)
-        cv2.line(annot, (cols - 1, righty), (0, lefty), (0, 255, 0), 2)
         angle = math.atan2(vy, vx)
 
         # todo: check on which side of the line our arrow is
@@ -307,7 +304,7 @@ class PenisController(FlightController):
             cv2.imshow('info', annot)
             return annot, None, None
         contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
-        cv2.drawContours(annot, contour, -1, (0, 255, 0), 3)
+        cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
 
         # get circle circularity
         circumference = cv2.arcLength(contour, True)
@@ -319,24 +316,35 @@ class PenisController(FlightController):
 
         # compute the center of the circle contour
         M = cv2.moments(contour)
-        X = int(M["m10"] / M["m00"])
-        Y = int(M["m01"] / M["m00"])
-        cv2.circle(annot, (X, Y), 8, (0, 0, 255), -1)
+        x = int(M["m10"] / M["m00"])
+        y = int(M["m01"] / M["m00"])
+        circleCenter = (x,y)
+        cv2.circle(annot, circleCenter, 10, 0, -1)
+        cv2.circle(annot, circleCenter, 8, (0, 0, 255), -1)
 
-        #print "angle: {}, position: {}, {}".format(angle, X, Y)
+        # get direction of line and draw it
+        direction = self.calcVectorDirection(circleCenter, boundingCenter, indicatorLine)
+        arrowHead = (x + 200 * direction * vx, y + 200 * direction * vy)
+        cv2.line(annot, circleCenter, arrowHead, cv2.cv.CV_RGB(0,0,0), 5)
+        cv2.line(annot, circleCenter, arrowHead, cv2.cv.CV_RGB(0,255,0), 3)
 
+
+        # get distance of circle center from image center
         imgH, imgW, _ = img.shape
-        dist = math.hypot(X - imgW/2.0, Y - imgH/2.0)
+        dist = math.hypot(x - imgW/2.0, y - imgH/2.0)
 
         #print dist
 
         cv2.imshow('info', annot)
 
-        circleCenter = (x,y)
-        boundingCenter = center_of_shape
-        line = indicatorLine
+        angle += direction * math.pi
 
-        direction = self.calcVectorDirection(circleCenter, boundingCenter, indicatorLine)
+        while angle > math.pi:
+            angle -= 2 * math.pi
+        while angle < -math.pi:
+            angle += 2 * math.pi
+
+        print "angle: {}, position: {}, {}".format(angle * 180.0 / math.pi, x, y)
 
         return annot, angle, dist
 
@@ -362,9 +370,6 @@ class PenisController(FlightController):
 if __name__ == "__main__":
     penis = PenisController(None)
     img = cv2.imread("img/up.png")
-    img, x, y = penis.analyzeImage(img)
-    print img
-    if img is not None:
-        cv2.imshow('info', img)
+    penis.analyzeImage(img)
     cv2.waitKey(0)
     exit(0)
