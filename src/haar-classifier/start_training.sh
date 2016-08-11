@@ -1,1 +1,1 @@
-opencv_traincascade -data classifier -vec samples/aggregated.vec -bg negatives.txt -numStages 20 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -numPos 1000 -numNeg 597 -w 80 -h 40 -mode ALL -precalcValBufferSize 1024 -precalcIdxBufSize 1024
+opencv_traincascade -data classifier -vec samples/aggregated.vec -bg negatives.txt -numStages 20 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -numPos 1000 -numNeg 597 -w 80 -h 40 -mode ALL -precalcValBufSize 1024 -precalcIdxBufSize 1024
