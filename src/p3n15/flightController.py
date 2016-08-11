@@ -4,7 +4,6 @@ import numpy
 import math
 import time
 import sys
-import matplotlib.pyplot as plt
 
 # ------------------------
 # -- MARK: Controller Classes
@@ -121,8 +120,6 @@ class PenisController(FlightController):
         cv2.createTrackbar("Dist P", 'config', 500, 1000, self.onTrackbarDistPChange)
         cv2.createTrackbar("Dist D", 'config', 500, 1000, self.onTrackbarDistDChange)
 
-        self.hplot, = plt.plot([],[])
-
     def onTrackbarYawPChange(self, value):
         self.Kp_r = value / 100.0
     def onTrackbarYawDChange(self, value):
@@ -183,10 +180,6 @@ class PenisController(FlightController):
                         pos_r_vel = 0.99 * pos_r_vel + 0.01 * r_diff_to_last_time
                         pos_r_ist = dyaw
 
-                        self.hplot.set_xdata(numpy.append(self.hplot.get_xdata(), last_video_timestamp))
-                        self.hplot.set_ydata(numpy.append(self.hplot.get_ydata(), dyaw))
-
-
                     if dist is not None:
                         dist_diff_to_last_time = dist - pos_d_ist
                         pos_d_vel = 0.99 * pos_d_vel + 0.01 * dist_diff_to_last_time
@@ -200,13 +193,9 @@ class PenisController(FlightController):
                 # new nav data arrived
                 NAVC = self.drone.NavDataCount
 
-
-                print "RawMeasures [X,Y,Z]:          "+str(self.drone.NavData["raw_measures"][0])
-                print "Gyros Offset [X,Y,Z]:         "+str(self.drone.NavData["gyros_offsets"])
-
-
                 try:
                     #pos_r_vel = self.drone.NavData["raw_measures"][1][2] # gyro_z, filtered (LSBs)
+                    #print "RawMeasures [X,Y,Z]:          " + str(self.drone.NavData["raw_measures"][1])
 
                     #print pos_r_vel
 
@@ -218,14 +207,13 @@ class PenisController(FlightController):
                     pos_x_out = pos_d_out * math.cos( pos_r_err )
                     pos_y_out = pos_d_out * math.sin( pos_r_err )
 
-                    print "D:", pos_d_out, "R: ", pos_r_out, "X: ", pos_x_out, "Y: ", pos_y_out
+                    #print "D:", pos_d_out, "R: ", pos_r_out, "X: ", pos_x_out, "Y: ", pos_y_out
 
-                    self.drone.move(pos_x_out, pos_y_out, 0, pos_r_out)
+                    #self.drone.move(pos_x_out, pos_y_out, 0, pos_r_out)
 
                 except:
                     print sys.exc_info()
 
-            plt.draw()
             cv2.waitKey(1)
 
         else:
@@ -247,7 +235,7 @@ class PenisController(FlightController):
         # get biggest contou
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) == 0:
-            print "could not find contour of paper"
+            #print "could not find contour of paper"
             cv2.imshow('info', thresh)
             return thresh, None, None
         contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
@@ -279,7 +267,7 @@ class PenisController(FlightController):
         ratio_deviation = abs((ratio - correct_ratio) / correct_ratio)
 
         if ratio_deviation > 0.15:
-            print "ratio_deviation is above 15% ({}%)".format(100 * ratio_deviation)
+            #print "ratio_deviation is above 15% ({}%)".format(100 * ratio_deviation)
             # print a, b
             cv2.imshow('info', annot)
             return annot, None, None
@@ -289,7 +277,7 @@ class PenisController(FlightController):
         contours, hierarchy = cv2.findContours(tmp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
         if len(contours) == 0:
-            print "could not find contour of male sign"
+            #print "could not find contour of male sign"
             cv2.imshow('info', annot)
             return annot, None, None
         # cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
@@ -302,7 +290,7 @@ class PenisController(FlightController):
         rows, cols = thresh.shape[:2]
         indicatorLine = cv2.fitLine(contour, cv2.cv.CV_DIST_L2, 0, 0.01, 0.01)
         [vx, vy, x, y] = indicatorLine
-        angle = math.atan2(vy, vx)
+        angle = math.atan2(vy, vx) + math.pi
 
         # todo: check on which side of the line our arrow is
 
@@ -316,7 +304,7 @@ class PenisController(FlightController):
         tmp = thresh.copy()
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) == 0:
-            print "could not find contour of inner circle"
+            #print "could not find contour of inner circle"
             cv2.imshow('info', annot)
             return annot, None, None
         contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
@@ -329,6 +317,7 @@ class PenisController(FlightController):
 
         if circularity > 1.2:
             print "circularity of inner circle too low ({} < 1.2)!".format(circularity)
+            return annot, None, None
 
         # compute the center of the circle contour
         M = cv2.moments(contour)
@@ -352,14 +341,15 @@ class PenisController(FlightController):
 
         cv2.imshow('info', annot)
 
-        angle += direction * math.pi
+        if direction < 0:
+            angle -= math.pi
 
         while angle > math.pi:
             angle -= 2 * math.pi
         while angle < -math.pi:
             angle += 2 * math.pi
 
-        print "angle: {}, position: {}, {}".format(angle * 180.0 / math.pi, x, y)
+        #print "angle: {}, position: {}, {}".format(angle * 180.0 / math.pi, x, y)
 
         return annot, angle, dist
 
