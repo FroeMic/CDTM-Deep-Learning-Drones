@@ -74,6 +74,7 @@ class P3N15(Drone):
 
     def initCamera(self, camera = FRONTCAM):
         Drone.setConfigAllID(self)                                  # Go to multiconfiguration-mode
+
         Drone.sdVideo(self)                                         # Choose lower resolution (hdVideo() for...well, guess it)
         Drone.saveVideo(self,False)
 
@@ -90,6 +91,7 @@ class P3N15(Drone):
         CDC = self.ConfigDataCount
         while CDC == self.ConfigDataCount:
             time.sleep(0.0001)                                      #Wait until it is done (after resync is done)
+
         Drone.startVideo(self)                                      # Start video-function
 
     def toggleCamera(self):
@@ -239,6 +241,6 @@ def handleTurns(drone):
 if __name__ == '__main__':
     drone = P3N15()
     drone.startup()
-    drone.useDemoMode(False)
+    drone.useMDemoMode(False)
     drone.initCamera(camera = P3N15.GROUNDCAM)
     run(drone)
