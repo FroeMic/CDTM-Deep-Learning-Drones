@@ -6,7 +6,7 @@ import pygame
 import numpy
 
 from ps_drone import Drone
-from flightController import FaceController as controller
+from flightController import PenisController as controller
 
 
 # =======================================
@@ -131,10 +131,11 @@ class P3N15(Drone):
 # -- MARK: Main Program Cycle
 # ------------------------
 def run(drone, cycleTime = 0.01):
+    SCALE = 1
     # init pygame
     pygame.init()
     pygame.display.set_caption("P3N15 Demo")
-    screen = pygame.display.set_mode((640, 360))
+    screen = pygame.display.set_mode((640*SCALE, 360*SCALE))
     screen = pygame.display.get_surface()
 
     # ==> Action!
