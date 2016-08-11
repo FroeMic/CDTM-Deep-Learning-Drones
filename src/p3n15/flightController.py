@@ -118,16 +118,82 @@ class PenisController(FlightController):
 
     def run(self):
         IMC = self.drone.VideoImageCount
+
+        NAVC = self.drone.NavDataCount
+
+        yaw_ist = 0
+        yaw_soll = 0
+        yaw_int = 0
+
+        pos_x_soll = 0
+        pos_x_ist = 0
+        pos_x_int = 0
+        pos_x_vel = 0
+        pos_y_soll = 0
+        pos_y_ist = 0
+        pos_y_int = 0
+        pos_y_vel = 0
+
+        self.Kp = 1
+        self.Ki = 0
+        self.Kd = 1e-2
+
+        last_video_timestamp = self.drone.VideoDecodeTimeStamp
+
         while not self.finished:
             if self.drone.VideoImageCount != IMC:
+                # new image arrived
                 IMC = self.drone.VideoImageCount
                 t_start = time.time()
                 try:
-                    self.drone.outputImage = self.analyzeImage(self.drone.VideoImage)
+                    t_diff = self.drone.VideoDecodeTimeStamp - last_video_timestamp
+                    last_video_timestamp = self.drone.VideoDecodeTimeStamp
+
+                    self.drone.outputImage, dyaw, dx, dy = self.analyzeImage(self.drone.VideoImage)
+
+                    if dyaw is not None:
+                        #yaw_ist = yaw
+                        #yaw_int += (yaw_ist - yaw_soll) * t_diff
+
+                        dyaw -= math.pi/2
+                        if dyaw > math.pi:
+                            dyaw -= 2*math.pi
+                        if dyaw < -math.pi:
+                            dyaw += 2*math.pi
+
+                        print "Turning by {} deg".format(dyaw * 180.0 / math.pi)
+
+                        #self.drone.turnAngle(dyaw * 180.0 / math.pi, 0.1) # blocks :(
+                        self.drone.move(0, 0, 0, 0.1 if dyaw < 0 else -0.1)
+
+                    if dx is not None and dy is not None:
+                        pos_x_ist = dx;
+                        pos_y_ist = dy;
+
+                    print "Image Recognition Cycle: ", time.time() - t_start
                 except:
                     print "Error"
-                #print "Image Recognition Cycle: ", time.time() - t_start
-            time.sleep(0.01)
+
+            if self.drone.NavDataCount != NAVC:
+                # new nav data arrived
+                #yaw = self.drone.NavData["demo"][2][2]
+
+                #yaw_err = yaw_ist - yaw_soll
+                #yaw_dif = self.drone.NavData["raw_measures"][1][2] # gyro_z, filtered (LSBs)
+
+                #print yaw_err, yaw_int, yaw_dif
+
+                #yaw_out = self.Kp * yaw_err + self.Ki * yaw_int + self.Kd * yaw_dif
+
+                pos_x_out = 0
+                pos_y_out = 0
+
+                #self.drone.move(pos_x_out, pos_y_out, 0, 0)
+
+
+
+
+
         else:
             print "Ended Autonomous Face Flight"
 
@@ -236,7 +302,7 @@ class PenisController(FlightController):
 
         cv2.imshow('info', annot)
 
-        return annot
+        return annot, angle, X, Y
 
     def turnDrone(self,angle):
         deg = math.degree(angle)
