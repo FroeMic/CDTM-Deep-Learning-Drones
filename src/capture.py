@@ -17,7 +17,7 @@ drone.useDemoMode(True)                                      # Just give me 15 b
 drone.setConfigAllID()                                       # Go to multiconfiguration-mode
 drone.sdVideo()                                              # Choose lower resolution (hdVideo() for...well, guess it)
 drone.saveVideo(False)
-drone.frontCam()                                            # Choose front view
+drone.groundCam()                                            # Choose front view
 CDC = drone.ConfigDataCount
 while CDC == drone.ConfigDataCount:       time.sleep(0.0001) # Wait until it is done (after resync is done)
 drone.startVideo()                                           # Start video-function
