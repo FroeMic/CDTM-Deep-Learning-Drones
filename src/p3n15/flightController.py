@@ -215,7 +215,7 @@ class PenisController(FlightController):
         if len(contours) == 0:
             print "could not find contour of paper"
             cv2.imshow('info', thresh)
-            return
+            return thresh
         contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
         # TODO: iterate over contours
@@ -248,7 +248,7 @@ class PenisController(FlightController):
             print "ratio_deviation is above 15% ({}%)".format(100 * ratio_deviation)
             print a, b
             cv2.imshow('info', annot)
-            return
+            return annot
 
         # Get biggest contour
         tmp = thresh.copy()
@@ -257,7 +257,7 @@ class PenisController(FlightController):
         if len(contours) == 0:
             print "could not find contour of male sign"
             cv2.imshow('info', annot)
-            return
+            return annot
         cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
 
         # Fit a line (to get angle)
@@ -280,7 +280,7 @@ class PenisController(FlightController):
         if len(contours) == 0:
             print "could not find contour of inner circle"
             cv2.imshow('info', annot)
-            return
+            return annot
         contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
         cv2.drawContours(annot, contour, -1, (0, 255, 0), 3)
 
