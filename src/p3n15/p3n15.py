@@ -219,9 +219,9 @@ def handleKeyDown(key, drone):
     elif key == pygame.K_d:
         drone.moveRight()
     elif key == pygame.K_UP:
-        drone.moveUp()
+        drone.moveUp(1)
     elif key == pygame.K_DOWN:
-        drone.moveDown()
+        drone.moveDown(1)
     elif key == pygame.K_c:
         drone.toggleCamera()
     elif key == pygame.K_m:
