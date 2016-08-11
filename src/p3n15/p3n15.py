@@ -239,6 +239,6 @@ def handleTurns(drone):
 if __name__ == '__main__':
     drone = P3N15()
     drone.startup()
-    drone.useDemoMode(True)
+    drone.useDemoMode(False)
     drone.initCamera(camera = P3N15.GROUNDCAM)
     run(drone)
