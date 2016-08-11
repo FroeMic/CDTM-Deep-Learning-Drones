@@ -4,6 +4,7 @@ import numpy
 import math
 import time
 import sys
+import pid from pid
 
 # ------------------------
 # -- MARK: Controller Classes
@@ -51,6 +52,10 @@ class FaceController(FlightController):
     def __init__(self, drone):
         FlightController.__init__(self, drone)
         self.face_cascade = cv2.CascadeClassifier('lib/haarcascade_frontalface_default.xml')
+        # init pids
+        self.rotation_pid = PID(0.6,0.6,0.05)
+        self.height_pid = PID(0.1,0.1,0.01)
+        self.dist_pid = PID(0.2,0.25,0.1)
 
     def newInstance(self):
         return FaceController(self.drone)
@@ -72,8 +77,10 @@ class FaceController(FlightController):
 
         faces, new_img = self.detectFaces(img)
 
-        if len(faces) >  0:
-            self.moveDrone(faces[0])
+        if len(faces) > 0:
+            self.moveDrone(faces[0], new_img) #only follow first face
+        else:
+            self.drone.hover()
 
         return new_img
 
@@ -101,10 +108,26 @@ class FaceController(FlightController):
         cv2.rectangle(img, (x,y), (x+w, y+h), color, 2)
 
 
-    def moveDrone(self, box):
+    def moveDrone(self, box, img):
         (x,y,w,h) = box
-        print "BoxSize ", w*h, ", Position ", (x, y)
+        f_h, f_w = img.shape[:2]                # image height and width
 
+        leftright_step = 0.0
+        backforward_step = dist_pid.step(self.distanceError(h))
+        updown_step = height_pid.step(self.verticalError(f_h, h))
+        turnleftright_step = rotation_pid.step(self.horizontalError(f_w, w))
+
+        drone.move(leftright_step,-float(backforward_step),-float(updown_step),float(turnleftright_step))
+
+    def verticalError(self, imageHeight, boxHeight):
+        return (imageHeight - boxHeight / 2.0) / (boxHeight / 2.0)
+
+    def horizontalError(self, imageWidth, boxWidth):
+        return (imageWidth - boxWidth / 2.0) / (boxWidth / 2.0)
+
+    def distanceError(self, h):
+        desiredBoxHeight = 75
+        return (h - desiredBoxHeight) / desiredBoxHeight
 
 # Penis controller class
 class PenisController(FlightController):
