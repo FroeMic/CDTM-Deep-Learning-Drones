@@ -142,6 +142,7 @@ class PenisController(FlightController):
                 # new image arrived
                 IMC = self.drone.VideoImageCount
                 t_start = time.time()
+
                 try:
                     t_diff = self.drone.VideoDecodeTimeStamp - last_video_timestamp
                     last_video_timestamp = self.drone.VideoDecodeTimeStamp
@@ -162,9 +163,9 @@ class PenisController(FlightController):
                         pos_d_vel = 0.99 * pos_d_vel + 0.01 * dist_diff_to_last_time
                         pos_d_ist = dist
 
-                    print "Image Recognition Cycle: ", time.time() - t_start
-                except:
-                    print "Error"
+                    #print "Image Recognition Cycle: ", time.time() - t_start
+                except Exception as err:
+                    print "Error", err
 
             if self.drone.NavDataCount != NAVC:
                 # new nav data arrived
@@ -256,7 +257,8 @@ class PenisController(FlightController):
 
         # Fit a line (to get (ambiguous) angle)
         rows, cols = thresh.shape[:2]
-        [vx, vy, x, y] = cv2.fitLine(contour, cv2.cv.CV_DIST_L2, 0, 0.01, 0.01)
+        indicatorLine = cv2.fitLine(contour, cv2.cv.CV_DIST_L2, 0, 0.01, 0.01)
+        [vx, vy, x, y] = indicatorLine
         lefty = int((-x * vy / vx) + y)
         righty = int(((cols - x) * vy / vx) + y)
         cv2.line(annot, (cols - 1, righty), (0, lefty), (0, 255, 0), 2)
@@ -294,16 +296,37 @@ class PenisController(FlightController):
         Y = int(M["m01"] / M["m00"])
         cv2.circle(annot, (X, Y), 8, (0, 0, 255), -1)
 
-        print "angle: {}, position: {}, {}".format(angle, X, Y)
+        #print "angle: {}, position: {}, {}".format(angle, X, Y)
 
         imgH, imgW, _ = img.shape
         dist = math.hypot(X - imgW/2.0, Y - imgH/2.0)
 
-        print dist
+        #print dist
 
         cv2.imshow('info', annot)
 
+        circleCenter = (x,y)
+        boundingCenter = center_of_shape
+        line = indicatorLine
+
+        direction = self.calcVectorDirection(circleCenter, boundingCenter, indicatorLine)
+
         return annot, angle, dist
+
+    def calcVectorDirection(self, circleCenter, boundingCenter, indicatorLine):
+        (x_c, y_c) = circleCenter
+        (x_b, y_b) = boundingCenter
+        (vx_l, vy_l, x_l, y_l) = indicatorLine
+
+        x = x_b - x_c
+        y = y_b - y_c
+
+        skal = x * vx_l + y * vy_l
+        if skal < 0:
+            return -1
+        else:
+            return 1 
+
 
     def turnDrone(self,angle):
         deg = math.degree(angle)
@@ -311,8 +334,9 @@ class PenisController(FlightController):
 
 if __name__ == "__main__":
     penis = PenisController(None)
-    img = cv2.imread("../img/2.png")
-    img = penis.analyzeImage(img)
+    img = cv2.imread("img/up.png")
+    img, x, y = penis.analyzeImage(img)
+    print img
     if img is not None:
         cv2.imshow('info', img)
     cv2.waitKey(0)
