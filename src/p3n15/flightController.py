@@ -113,6 +113,21 @@ class PenisController(FlightController):
         FlightController.__init__(self, drone)
         self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
+        cv2.namedWindow('config', cv2.WINDOW_NORMAL)
+        cv2.createTrackbar("Yaw P", 'config', 500, 1000, self.onTrackbarYawPChange)
+        cv2.createTrackbar("Yaw D", 'config', 500, 1000, self.onTrackbarYawDChange)
+        cv2.createTrackbar("Dist P", 'config', 500, 1000, self.onTrackbarDistPChange)
+        cv2.createTrackbar("Dist D", 'config', 500, 1000, self.onTrackbarDistDChange)
+
+    def onTrackbarYawPChange(self, value):
+        self.Kp_r = value / 100.0
+    def onTrackbarYawDChange(self, value):
+        self.Kd_r = value / 100.0
+    def onTrackbarDistPChange(self, value):
+        self.Kp_d = value / 100.0
+    def onTrackbarDistDChange(self, value):
+        self.Kd_d = value / 100.0
+
     def newInstance(self):
         return PenisController(self.drone)
 
@@ -151,12 +166,15 @@ class PenisController(FlightController):
 
                     if dyaw is not None:
                         #yaw_int += (yaw_ist - yaw_soll) * t_diff
-                        dyaw -= math.pi/2
+                        #dyaw -= math.pi/2
                         if dyaw > math.pi:
                             dyaw -= 2*math.pi
                         if dyaw < -math.pi:
                             dyaw += 2*math.pi
-                        pos_r_ist = pos_r_soll + dyaw
+
+                        r_diff_to_last_time = dyaw - pos_r_ist
+                        pos_r_vel = 0.99 * pos_r_vel + 0.01 * r_diff_to_last_time
+                        pos_r_ist = dyaw
 
                     if dist is not None:
                         dist_diff_to_last_time = dist - pos_d_ist
@@ -171,19 +189,27 @@ class PenisController(FlightController):
                 # new nav data arrived
                 NAVC = self.drone.NavDataCount
 
-#                pos_r_vel = self.drone.NavData["raw_measures"][1][2] # gyro_z, filtered (LSBs)
-#                pos_r_err = pos_r_soll - pos_r_ist
-#                pos_d_err = pos_d_soll - pos_d_ist
-#                pos_r_out = self.Kp_r * pos_r_err + self.Kd_r * pos_r_vel
-#                pos_d_out = self.Kp_d * pos_d_err + self.Kd_d * pos_d_vel
+                try:
+                    #pos_r_vel = self.drone.NavData["raw_measures"][1][2] # gyro_z, filtered (LSBs)
 
-#                pos_x_out = pos_d_out * math.cos( dyaw )
-#                pos_y_out = pos_d_out * math.sin( dyaw )
+                    print pos_r_vel
 
-#                print "D:", pos_d_out, "R: ", pos_r_out, "X: ", pos_x_out, "Y: ", pos_y_out
+                    pos_r_err = pos_r_soll - pos_r_ist
+                    pos_d_err = pos_d_soll - pos_d_ist
+                    pos_r_out = self.Kp_r * pos_r_err + self.Kd_r * pos_r_vel
+                    pos_d_out = self.Kp_d * pos_d_err + self.Kd_d * pos_d_vel
 
-#                self.drone.move(pos_x_out, pos_y_out, 0, pos_r_out)
+                    pos_x_out = pos_d_out * math.cos( pos_r_err )
+                    pos_y_out = pos_d_out * math.sin( pos_r_err )
 
+                    print "D:", pos_d_out, "R: ", pos_r_out, "X: ", pos_x_out, "Y: ", pos_y_out
+
+                    self.drone.move(pos_x_out, pos_y_out, 0, pos_r_out)
+
+                    cv2.waitKey(1)
+
+                except KeyError:
+                    pass
 
         else:
             print "Ended Autonomous Face Flight"
@@ -206,7 +232,7 @@ class PenisController(FlightController):
         if len(contours) == 0:
             print "could not find contour of paper"
             cv2.imshow('info', thresh)
-            return thresh
+            return thresh, None, None
         contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
         # TODO: iterate over contours
@@ -239,7 +265,7 @@ class PenisController(FlightController):
             print "ratio_deviation is above 15% ({}%)".format(100 * ratio_deviation)
             print a, b
             cv2.imshow('info', annot)
-            return annot
+            return annot, None, None
 
         # Get biggest contour
         tmp = thresh.copy()
@@ -248,7 +274,7 @@ class PenisController(FlightController):
         if len(contours) == 0:
             print "could not find contour of male sign"
             cv2.imshow('info', annot)
-            return annot
+            return annot, None, None
         cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
 
         # get center of the full shape
@@ -278,7 +304,7 @@ class PenisController(FlightController):
         if len(contours) == 0:
             print "could not find contour of inner circle"
             cv2.imshow('info', annot)
-            return annot
+            return annot, None, None
         contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
         cv2.drawContours(annot, contour, -1, (0, 255, 0), 3)
 
