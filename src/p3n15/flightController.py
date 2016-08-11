@@ -187,7 +187,8 @@ class PenisController(FlightController):
 
                     #print "Image Recognition Cycle: ", time.time() - t_start
                 except:
-                    print sys.exc_traceback
+                    pass
+                    #print str(sys.exc_traceback)
 
             if self.drone.NavDataCount != NAVC:
                 # new nav data arrived
@@ -232,126 +233,129 @@ class PenisController(FlightController):
         # cv2.imshow('blur', blur)
         flag, thresh = cv2.threshold(blur, 200, 255, cv2.THRESH_BINARY)
 
-        # get biggest contou
+        # get biggest contour
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) == 0:
             #print "could not find contour of paper"
             cv2.imshow('info', thresh)
             return thresh, None, None
-        contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
 
-        # TODO: iterate over contours
+        # iterate over contours
+        contours_temp = contours
+        for contour in sorted(contours_temp, key=cv2.contourArea, reverse=True):
 
-        # clip to rotated rectangle
-        rect = cv2.minAreaRect(contour)
-        box = cv2.cv.BoxPoints(rect)
-        box = numpy.int0(box)
-        mask = 0 * hsl
-        cv2.drawContours(mask, [box], -1, (255), -1)
-        hsl = cv2.bitwise_and(hsl, mask) + cv2.bitwise_not(0 * mask, mask)
+            # clip to rotated rectangle
+            rect = cv2.minAreaRect(contour)
+            box = cv2.cv.BoxPoints(rect)
+            box = numpy.int0(box)
+            mask = 0 * hsl
+            cv2.drawContours(mask, [box], -1, (255), -1)
+            hsl = cv2.bitwise_and(hsl, mask) + cv2.bitwise_not(0 * mask, mask)
 
-        # binary image
-        blur = cv2.GaussianBlur(hsl, (9, 9), 100)
-        flag, thresh = cv2.threshold(blur, 200, 255, cv2.THRESH_BINARY)
-        thresh = 255 - thresh
-        # thresh_annot = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
-        annot = img
-        cv2.drawContours(annot, [box], -1, (0, 0, 255), 4)
+            # binary image
+            blur = cv2.GaussianBlur(hsl, (9, 9), 100)
+            flag, thresh = cv2.threshold(blur, 200, 255, cv2.THRESH_BINARY)
+            thresh = 255 - thresh
+            # thresh_annot = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+            annot = img
+            cv2.drawContours(annot, [box], -1, (0, 0, 255), 4)
 
-        # check ratio of rectangle, it must be roughly A4
-        a = math.hypot(box[0][0] - box[1][0], box[0][1] - box[1][1])
-        b = math.hypot(box[1][0] - box[2][0], box[1][1] - box[2][1])
+            # check ratio of rectangle, it must be roughly A4
+            a = math.hypot(box[0][0] - box[1][0], box[0][1] - box[1][1])
+            b = math.hypot(box[1][0] - box[2][0], box[1][1] - box[2][1])
 
-        ratio = a / b if a < b else b / a
-        correct_ratio = 210.0 / 297.0
-        ratio_deviation = abs((ratio - correct_ratio) / correct_ratio)
+            ratio = a / b if a < b else b / a
+            correct_ratio = 210.0 / 297.0
+            ratio_deviation = abs((ratio - correct_ratio) / correct_ratio)
 
-        if ratio_deviation > 0.15:
-            #print "ratio_deviation is above 15% ({}%)".format(100 * ratio_deviation)
-            # print a, b
+            if ratio_deviation > 0.15:
+                #print "ratio_deviation is above 15% ({}%)".format(100 * ratio_deviation)
+                # print a, b
+                cv2.imshow('info', annot)
+                #return annot, None, None
+                continue
+
+            # Get biggest contour
+            tmp = thresh.copy()
+            contours, hierarchy = cv2.findContours(tmp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            if len(contours) == 0:
+                #print "could not find contour of male sign"
+                cv2.imshow('info', annot)
+                #return annot, None, None
+                continue
+            contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
+            # cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
+
+            # get center of the full shape
+            rect = cv2.minAreaRect(contour)
+            boundingCenter = rect[0]
+
+            # Fit a line (to get (ambiguous) angle)
+            rows, cols = thresh.shape[:2]
+            indicatorLine = cv2.fitLine(contour, cv2.cv.CV_DIST_L2, 0, 0.01, 0.01)
+            [vx, vy, x, y] = indicatorLine
+            angle = math.atan2(vy, vx) + math.pi
+
+            # mask inner contour
+            mask = numpy.zeros(thresh.shape, numpy.uint8)
+            cv2.drawContours(mask, [contour], -1, (255), -1)
+            thresh = cv2.bitwise_and(255 - thresh, mask)
+            # cv2.imshow('thresh', thresh)
+
+            # get inner circle shape
+            tmp = thresh.copy()
+            contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            if len(contours) == 0:
+                #print "could not find contour of inner circle"
+                cv2.imshow('info', annot)
+                #return annot, None, None
+                continue
+            contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
+            cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
+
+            # get circle circularity
+            circumference = cv2.arcLength(contour, True)
+            area = cv2.contourArea(contour)
+            circularity = circumference ** 2 / (4 * math.pi * area)
+
+            if circularity > 1.2:
+                #print "circularity of inner circle too low ({} < 1.2)!".format(circularity)
+                #return annot, None, None
+                continue
+
+            # compute the center of the circle contour
+            M = cv2.moments(contour)
+            x = int(M["m10"] / M["m00"])
+            y = int(M["m01"] / M["m00"])
+            circleCenter = (x, y)
+            cv2.circle(annot, circleCenter, 10, 0, -1)
+            cv2.circle(annot, circleCenter, 8, (0, 0, 255), -1)
+
+            # get direction of line and draw it
+            direction = self.calcVectorDirection(circleCenter, boundingCenter, indicatorLine)
+            arrowHead = (x + 100 * direction * vx, y + 100 * direction * vy)
+            cv2.line(annot, circleCenter, arrowHead, cv2.cv.CV_RGB(0, 0, 0), 5)
+            cv2.line(annot, circleCenter, arrowHead, cv2.cv.CV_RGB(0, 255, 0), 3)
+
+            # get distance of circle center from image center
+            imgH, imgW, _ = img.shape
+            dist = math.hypot(x - imgW / 2.0, y - imgH / 2.0)
+
+            # print dist
+
             cv2.imshow('info', annot)
-            return annot, None, None
 
-        # Get biggest contour
-        tmp = thresh.copy()
-        contours, hierarchy = cv2.findContours(tmp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
-        if len(contours) == 0:
-            #print "could not find contour of male sign"
-            cv2.imshow('info', annot)
-            return annot, None, None
-        # cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
+            if direction < 0:
+                angle -= math.pi
 
-        # get center of the full shape
-        rect = cv2.minAreaRect(contour)
-        boundingCenter = rect[0]
+            while angle > math.pi:
+                angle -= 2 * math.pi
+            while angle < -math.pi:
+                angle += 2 * math.pi
 
-        # Fit a line (to get (ambiguous) angle)
-        rows, cols = thresh.shape[:2]
-        indicatorLine = cv2.fitLine(contour, cv2.cv.CV_DIST_L2, 0, 0.01, 0.01)
-        [vx, vy, x, y] = indicatorLine
-        angle = math.atan2(vy, vx) + math.pi
+            #print "angle: {}, position: {}, {}".format(angle * 180.0 / math.pi, x, y)
 
-        # todo: check on which side of the line our arrow is
-
-        # mask inner contour
-        mask = numpy.zeros(thresh.shape, numpy.uint8)
-        cv2.drawContours(mask, [contour], -1, (255), -1)
-        thresh = cv2.bitwise_and(255 - thresh, mask)
-        # cv2.imshow('thresh', thresh)
-
-        # get inner circle shape
-        tmp = thresh.copy()
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        if len(contours) == 0:
-            #print "could not find contour of inner circle"
-            cv2.imshow('info', annot)
-            return annot, None, None
-        contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
-        cv2.drawContours(annot, contour, -1, (255, 0, 0), 3)
-
-        # get circle circularity
-        circumference = cv2.arcLength(contour, True)
-        area = cv2.contourArea(contour)
-        circularity = circumference ** 2 / (4 * math.pi * area)
-
-        if circularity > 1.2:
-            print "circularity of inner circle too low ({} < 1.2)!".format(circularity)
-            return annot, None, None
-
-        # compute the center of the circle contour
-        M = cv2.moments(contour)
-        x = int(M["m10"] / M["m00"])
-        y = int(M["m01"] / M["m00"])
-        circleCenter = (x, y)
-        cv2.circle(annot, circleCenter, 10, 0, -1)
-        cv2.circle(annot, circleCenter, 8, (0, 0, 255), -1)
-
-        # get direction of line and draw it
-        direction = self.calcVectorDirection(circleCenter, boundingCenter, indicatorLine)
-        arrowHead = (x + 200 * direction * vx, y + 200 * direction * vy)
-        cv2.line(annot, circleCenter, arrowHead, cv2.cv.CV_RGB(0, 0, 0), 5)
-        cv2.line(annot, circleCenter, arrowHead, cv2.cv.CV_RGB(0, 255, 0), 3)
-
-        # get distance of circle center from image center
-        imgH, imgW, _ = img.shape
-        dist = math.hypot(x - imgW / 2.0, y - imgH / 2.0)
-
-        # print dist
-
-        cv2.imshow('info', annot)
-
-        if direction < 0:
-            angle -= math.pi
-
-        while angle > math.pi:
-            angle -= 2 * math.pi
-        while angle < -math.pi:
-            angle += 2 * math.pi
-
-        #print "angle: {}, position: {}, {}".format(angle * 180.0 / math.pi, x, y)
-
-        return annot, angle, dist
+            return annot, angle, dist
 
     def calcVectorDirection(self, circleCenter, boundingCenter, indicatorLine):
         (x_c, y_c) = circleCenter
