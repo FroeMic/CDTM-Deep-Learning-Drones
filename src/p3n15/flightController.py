@@ -182,3 +182,8 @@ class PenisController(FlightController):
         print "angle: {}, position: {}, {}".format(angle, X, Y)
 
         return thresh_annot
+
+
+        def turnDrone(self,angle):
+            deg = math.degree(angle)
+            self.turnAngle(deg, 1)
