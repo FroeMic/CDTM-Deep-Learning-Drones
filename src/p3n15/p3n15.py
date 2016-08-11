@@ -6,7 +6,7 @@ import pygame
 import numpy
 
 from ps_drone import Drone
-from flightController import PenisController as controller
+from flightController import FaceController as controller
 
 
 # =======================================
@@ -63,7 +63,7 @@ class P3N15(Drone):
 
         while (Drone.getBattery(self)[0] == -1):
             time.sleep(0.1)		                # Waits until the drone has done its reset
-        print Drone.getBattery(self)
+        print "=>", Drone.getBattery(self)
         time.sleep(0.5)							# Give it some time to fully awake
 
 
@@ -152,8 +152,10 @@ def run(drone, cycleTime = 0.01):
         time.sleep(cycleTime)
 
     # Goodbye
+    print "=> Goodbye"
     drone.shutdown()
     pygame.quit()
+
 
 def updateUI(drone, screen):
     frame = prepareFrame(drone)

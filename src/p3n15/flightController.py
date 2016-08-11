@@ -41,7 +41,7 @@ class FaceController(FlightController):
     ''' Controller to follow a face autonomously.'''
     def __init__(self, drone):
         FlightController.__init__(self, drone)
-        self.face_cascade = cv2.CascadeClassifier('face_detection_playground/haarcascade_frontalface_default.xml')
+        self.face_cascade = cv2.CascadeClassifier('lib/haarcascade_frontalface_default.xml')
 
     def newInstance(self):
         return FaceController(self.drone)
@@ -53,25 +53,56 @@ class FaceController(FlightController):
                 IMC = self.drone.VideoImageCount
                 t_start = time.time()
                 self.drone.outputImage = self.analyzeImage()
-                print "Image Recognition Cycle: ",  time.time() - t_start
+                #print "Image Recognition Cycle: ",  time.time() - t_start
             time.sleep(0.01)
         else:
             print "Ended Autonomous Face Flight"
 
     def analyzeImage(self):
         img = self.drone.VideoImage
+
+        faces, new_img = self.detectFaces(img)
+
+        if len(faces) >  0:
+            self.moveDrone(faces[0])
+
+        return new_img
+
+    def detectFaces(self, img):
+        '''returns faces array (x,y,w,h) and altered image'''
+        img = self.drone.VideoImage
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
-        for (x,y,w,h) in faces:
-            cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
+        red = True
+        for face in faces:
+            if red:
+                self.drawRectangle(face, img)
+            else:
+                self.drawRectangle(face, img, (255,0,0))
 
         if len(faces) > 0:
-            filename = "img/" + str(drone.VideoDecodeTimeStamp) + '.png'
-            cv2.imwrite(filename, img)
-            print("Saved Image")
+            self.saveImage(img)
 
-        return img
+        return faces, img
+
+    def drawRectangle(self, box, img, color=(0,0,255)):
+        '''Draws a rectangle around the the specified box.'''
+        (x,y,w,h) = box
+        cv2.rectangle(img, (x,y), (x+w, y+h), color, 2)
+
+    def saveImage(self, img, path="img/", title=None):
+        if not title:
+            title = str(self.drone.VideoDecodeTimeStamp) + '.png'
+
+        filepath = path + "/" + title
+        cv2.imwrite(filepath, img)
+
+
+    def moveDrone(self, box):
+        (x,y,w,h) = box
+        print "BoxSize ", w*h, ", Position ", (x, y)
+
 
 # Penis controller class
 class PenisController(FlightController):
