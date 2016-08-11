@@ -17,14 +17,21 @@ def main(argv):
     #while cv2.waitKey(20) & 0xFF != ord("q"):
     if True:
         img = cv2.imread(file)
+
+        cv2.imshow('img', img)
+
         hsl = cv2.cvtColor(img, cv2.COLOR_RGB2HLS_FULL)[:,:,1]
+        #cv2.imshow('hls', hsl)
 
         # enhance contrast
         hsl = clahe.apply(hsl)
+        #cv2.imshow('clahe', hsl)
 
         # binary image
         blur = cv2.GaussianBlur(hsl, (9,9), 100)
+        #cv2.imshow('blur', blur)
         flag, thresh = cv2.threshold(blur,200,255,cv2.THRESH_BINARY)
+        #cv2.imshow('thresh', thresh)
 
         #get biggest contour
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -42,13 +49,26 @@ def main(argv):
         blur = cv2.GaussianBlur(hsl, (9,9), 100)
         flag, thresh = cv2.threshold(blur,200,255,cv2.THRESH_BINARY)
         thresh = 255-thresh
-        thresh_annot = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+        #thresh_annot = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+        thresh_annot = img
         cv2.drawContours(thresh_annot, [box], -1, (0,0,255), 1)
 
+        # TODO: check ratio of rectangle, it must be roughly A4
+        a = math.hypot(box[0][0] - box[1][0], box[0][1] - box[1][1])
+        b = math.hypot(box[1][0] - box[2][0], box[1][1] - box[2][1])
+
+        ratio = a/b if a<b else b/a
+        correct_ratio = 210.0/297.0
+        ratio_deviation = abs((ratio-correct_ratio) / correct_ratio)
+
+        if ratio_deviation > 0.05:
+            print "ratio_deviation is above 5% ({})".format(100 * ratio_deviation)
+
         # Get biggest contour
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        tmp = thresh.copy()
+        contours, hierarchy = cv2.findContours(tmp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
-        #cv2.drawContours(thresh_annot, contour, -1, (255,0,0), cv2.CV_AA)
+        cv2.drawContours(thresh_annot, contour, -1, (255,0,0), 3)
 
         # Fit a line (to get angle)
         rows,cols = thresh.shape[:2]
@@ -58,7 +78,27 @@ def main(argv):
         cv2.line(thresh_annot,(cols-1,righty),(0,lefty),(0,255,0),2)
         angle = math.atan2(vy, vx)
 
-        # compute the center of the contour
+        # mask inner contour
+        mask = np.zeros(thresh.shape, np.uint8)
+        cv2.drawContours(mask, [contour], -1, (255), -1)
+        thresh = cv2.bitwise_and(255 - thresh, mask)
+        cv2.imshow('thresh', thresh)
+
+        # get inner circle shape
+        tmp = thresh.copy()
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
+        cv2.drawContours(thresh_annot, contour, -1, (0,255,0), 3)
+
+        # get circle circularity
+        circumference = cv2.arcLength(contour, True)
+        area = cv2.contourArea(contour)
+        circularity = circumference ** 2 / (4 * math.pi * area)
+
+        if circularity > 1.2:
+            print "circularity of inner circle too low ({} < 1.2)!".format(circularity)
+
+        # compute the center of the circle contour
         M = cv2.moments(contour)
         X = int(M["m10"] / M["m00"])
         Y = int(M["m01"] / M["m00"])
@@ -66,7 +106,7 @@ def main(argv):
 
         print "angle: {}, position: {}, {}".format(angle, X, Y)
 
-        cv2.imshow('thresh', thresh_annot)
+        cv2.imshow('info', thresh_annot)
         #cv2.imshow('img', img)
 
         cv2.waitKey(0)
