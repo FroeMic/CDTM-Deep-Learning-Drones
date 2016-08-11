@@ -3,6 +3,7 @@ import cv2
 import numpy
 import math
 import time
+import sys
 
 # ------------------------
 # -- MARK: Controller Classes
@@ -180,9 +181,9 @@ class PenisController(FlightController):
                         pos_d_vel = 0.99 * pos_d_vel + 0.01 * dist_diff_to_last_time
                         pos_d_ist = dist
 
-                    print "Image Recognition Cycle: ", time.time() - t_start
+                    #print "Image Recognition Cycle: ", time.time() - t_start
                 except:
-                    print "Error"
+                    print sys.exc_info()
 
             if self.drone.NavDataCount != NAVC:
                 # new nav data arrived
@@ -201,7 +202,7 @@ class PenisController(FlightController):
                     pos_x_out = pos_d_out * math.cos( pos_r_err )
                     pos_y_out = pos_d_out * math.sin( pos_r_err )
 
-                    print "D:", pos_d_out, "R: ", pos_r_out, "X: ", pos_x_out, "Y: ", pos_y_out
+                    #print "D:", pos_d_out, "R: ", pos_r_out, "X: ", pos_x_out, "Y: ", pos_y_out
 
                     self.drone.move(pos_x_out, pos_y_out, 0, pos_r_out)
 
@@ -226,7 +227,7 @@ class PenisController(FlightController):
         # cv2.imshow('blur', blur)
         flag, thresh = cv2.threshold(blur, 200, 255, cv2.THRESH_BINARY)
 
-        # get biggest contour
+        # get biggest contou
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) == 0:
             print "could not find contour of paper"
@@ -262,7 +263,7 @@ class PenisController(FlightController):
 
         if ratio_deviation > 0.15:
             print "ratio_deviation is above 15% ({}%)".format(100 * ratio_deviation)
-            print a, b
+            #print a, b
             cv2.imshow('info', annot)
             return annot, None, None
 
