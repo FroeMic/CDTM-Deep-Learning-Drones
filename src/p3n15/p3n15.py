@@ -143,7 +143,6 @@ def run(drone, cycleTime = 0.01):
     # ==> Action!
     IMC =    drone.VideoImageCount                               # Number of encoded videoframes
     stop =   False
-
     while True:
         if handleEvents(drone):
             break
@@ -243,4 +242,6 @@ if __name__ == '__main__':
     drone.startup()
     drone.useMDemoMode(False)
     drone.initCamera(camera = P3N15.GROUNDCAM)
+    drone.getNDpackage(["demo","pressure_raw","altitude","magneto","wifi","raw_measures","gyros_offsets",]) # Packets to decoded
+
     run(drone)
