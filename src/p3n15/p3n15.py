@@ -160,9 +160,12 @@ def run(drone, cycleTime = 0.01):
 
 
 def updateUI(drone, screen):
-    frame = prepareFrame(drone)
-    screen.blit(frame, (0,0))
-    pygame.display.flip()
+    try:
+        frame = prepareFrame(drone)
+        screen.blit(frame, (0,0))
+        pygame.display.flip()
+    except:
+        pass
 
 def prepareFrame(drone):
     try:
