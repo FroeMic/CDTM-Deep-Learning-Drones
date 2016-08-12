@@ -115,19 +115,19 @@ class PenisController(FlightController):
         self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
         cv2.namedWindow('config', cv2.WINDOW_NORMAL)
-        cv2.createTrackbar("Yaw P", 'config', 500, 1000, self.onTrackbarYawPChange)
-        cv2.createTrackbar("Yaw D", 'config', 500, 1000, self.onTrackbarYawDChange)
-        cv2.createTrackbar("Dist P", 'config', 500, 1000, self.onTrackbarDistPChange)
-        cv2.createTrackbar("Dist D", 'config', 500, 1000, self.onTrackbarDistDChange)
+        cv2.createTrackbar("Yaw P", 'config', 50, 100, self.onTrackbarYawPChange)
+        cv2.createTrackbar("Yaw D", 'config', 0, 100, self.onTrackbarYawDChange)
+        cv2.createTrackbar("Dist P", 'config', 20, 100, self.onTrackbarDistPChange)
+        cv2.createTrackbar("Dist D", 'config', 5, 100, self.onTrackbarDistDChange)
 
     def onTrackbarYawPChange(self, value):
-        self.Kp_r = value / 100.0
+        self.Kp_r = value / 10000.0
     def onTrackbarYawDChange(self, value):
-        self.Kd_r = value / 100.0
+        self.Kd_r = value / 10000.0
     def onTrackbarDistPChange(self, value):
-        self.Kp_d = value / 100.0
+        self.Kp_d = value / 1000.0
     def onTrackbarDistDChange(self, value):
-        self.Kd_d = value / 100.0
+        self.Kd_d = value / 10000.0
 
     def newInstance(self):
         return PenisController(self.drone)
@@ -145,11 +145,12 @@ class PenisController(FlightController):
         pos_d_ist = 0
         pos_d_int = 0
         pos_d_vel = 0
+        pos_d_phi = 0
 
-        self.Kp_r = 1
-        self.Kd_r = 1e-2
-        self.Kp_d = 1
-        self.Kd_d = 1
+        self.Kp_r = 50/10000.0
+        self.Kd_r = 0/10000.0
+        self.Kp_d = 20/1000.0
+        self.Kd_d = 5/10000.0
 
         last_video_timestamp = self.drone.VideoDecodeTimeStamp
 
@@ -163,7 +164,10 @@ class PenisController(FlightController):
                     t_diff = self.drone.VideoDecodeTimeStamp - last_video_timestamp
                     last_video_timestamp = self.drone.VideoDecodeTimeStamp
 
-                    self.drone.outputImage, dyaw, dist = self.analyzeImage(self.drone.VideoImage)
+                    self.drone.outputImage, dyaw, distphi, dist = self.analyzeImage(self.drone.VideoImage)
+
+                    if dyaw is None:
+                        self.drone.stop()
 
                     if dyaw is not None:
                         #yaw_int += (yaw_ist - yaw_soll) * t_diff
@@ -174,7 +178,7 @@ class PenisController(FlightController):
                         if dyaw < -math.pi:
                             dyaw += 2*math.pi
 
-                        print "angle: {}, dist: {}".format(dyaw * 180.0 / math.pi, dist)
+                        #print "angle: {}, dist: {}".format(dyaw * 180.0 / math.pi, dist)
 
                         r_diff_to_last_time = dyaw - pos_r_ist
                         pos_r_vel = 0.99 * pos_r_vel + 0.01 * r_diff_to_last_time
@@ -182,8 +186,10 @@ class PenisController(FlightController):
 
                     if dist is not None:
                         dist_diff_to_last_time = dist - pos_d_ist
-                        pos_d_vel = 0.99 * pos_d_vel + 0.01 * dist_diff_to_last_time
+                        pos_d_vel = 0 * pos_d_vel + 1 * dist_diff_to_last_time
                         pos_d_ist = dist
+                        pos_d_phi = distphi
+                        print "pos_d_vel:",pos_d_vel
 
                     #print "Image Recognition Cycle: ", time.time() - t_start
                 except:
@@ -205,12 +211,14 @@ class PenisController(FlightController):
                     pos_r_out = self.Kp_r * pos_r_err + self.Kd_r * pos_r_vel
                     pos_d_out = self.Kp_d * pos_d_err + self.Kd_d * pos_d_vel
 
-                    pos_x_out = pos_d_out * math.cos( pos_r_err )
-                    pos_y_out = pos_d_out * math.sin( pos_r_err )
+                    pos_x_out = -pos_d_out * math.cos( pos_d_phi )
+                    pos_y_out = pos_d_out * math.sin( pos_d_phi )
 
-                    #print "D:", pos_d_out, "R: ", pos_r_out, "X: ", pos_x_out, "Y: ", pos_y_out
+                    print "D:", pos_d_out, "R: ", pos_r_out, "X: ", pos_x_out, "Y: ", pos_y_out
 
+                    self.drone.move(0,0, 0, pos_r_out)
                     #self.drone.move(pos_x_out, pos_y_out, 0, pos_r_out)
+                    self.drone.move(pos_x_out, pos_y_out, 0, 0)
 
                 except:
                     print sys.exc_info()
@@ -237,7 +245,7 @@ class PenisController(FlightController):
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) == 0:
             #print "could not find contour of paper"
-            cv2.imshow('info', thresh)
+            #cv2.imshow('info', thresh)
             return thresh, None, None
 
         # iterate over contours
@@ -271,7 +279,7 @@ class PenisController(FlightController):
             if ratio_deviation > 0.15:
                 #print "ratio_deviation is above 15% ({}%)".format(100 * ratio_deviation)
                 # print a, b
-                cv2.imshow('info', annot)
+                #cv2.imshow('info', annot)
                 #return annot, None, None
                 continue
 
@@ -280,7 +288,7 @@ class PenisController(FlightController):
             contours, hierarchy = cv2.findContours(tmp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
             if len(contours) == 0:
                 #print "could not find contour of male sign"
-                cv2.imshow('info', annot)
+                #cv2.imshow('info', annot)
                 #return annot, None, None
                 continue
             contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
@@ -307,7 +315,7 @@ class PenisController(FlightController):
             contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
             if len(contours) == 0:
                 #print "could not find contour of inner circle"
-                cv2.imshow('info', annot)
+                #cv2.imshow('info', annot)
                 #return annot, None, None
                 continue
             contour = sorted(contours, key=cv2.contourArea, reverse=True)[0]
@@ -339,11 +347,13 @@ class PenisController(FlightController):
 
             # get distance of circle center from image center
             imgH, imgW, _ = img.shape
-            dist = math.hypot(x - imgW / 2.0, y - imgH / 2.0)
+            x = x - imgW / 2.0
+            y = y - imgH / 2.0
+            dist = math.hypot(x, y)
 
             # print dist
 
-            cv2.imshow('info', annot)
+            #cv2.imshow('info', annot)
 
             if direction < 0:
                 angle -= math.pi
@@ -355,7 +365,9 @@ class PenisController(FlightController):
 
             #print "angle: {}, position: {}, {}".format(angle * 180.0 / math.pi, x, y)
 
-            return annot, angle, dist
+            phi = math.atan2(y,x)
+
+            return annot, angle, phi, dist
 
     def calcVectorDirection(self, circleCenter, boundingCenter, indicatorLine):
         (x_c, y_c) = circleCenter
