@@ -226,6 +226,7 @@ class PenisController(FlightController):
                     #print "Image Recognition Cycle: ", time.time() - t_start
                 except Exception as e:
                     print e
+                    self.drone.outputImage = self.drone.VideoImage
 
             if self.drone.NavDataCount != NAVC:
                 # new nav data arrived
@@ -257,7 +258,6 @@ class PenisController(FlightController):
         # iterate over contours
         contours_temp = contours
         for contour0 in sorted(contours_temp, key=cv2.contourArea, reverse=True):
-
             # clip to rotated rectangle
             rect = cv2.minAreaRect(contour0)
             box = cv2.cv.BoxPoints(rect)
