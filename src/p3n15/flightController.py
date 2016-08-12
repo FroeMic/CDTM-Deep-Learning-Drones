@@ -183,6 +183,9 @@ class PenisController(FlightController):
                 IMC = self.drone.VideoImageCount
                 t_start = time.time()
 
+                if self.drone.VideoImage is None:
+                    continue
+
                 try:
                     t_diff = self.drone.VideoDecodeTimeStamp - last_video_timestamp
                     last_video_timestamp = self.drone.VideoDecodeTimeStamp
@@ -217,12 +220,12 @@ class PenisController(FlightController):
 
                         self.drone.move(right, forward, up, turn)
                     else:
+                        print "hover... "
                         self.drone.stop()
 
                     #print "Image Recognition Cycle: ", time.time() - t_start
-                except:
-                    pass
-                    #print str(sys.exc_traceback)
+                except Exception as e:
+                    print e
 
             if self.drone.NavDataCount != NAVC:
                 # new nav data arrived
@@ -249,7 +252,7 @@ class PenisController(FlightController):
         if len(contours) == 0:
             #print "could not find contour of paper"
             #cv2.imshow('info', thresh)
-            return thresh, None, None
+            return thresh, None, None, None
 
         # iterate over contours
         contours_temp = contours
@@ -275,6 +278,9 @@ class PenisController(FlightController):
             a = math.hypot(box[0][0] - box[1][0], box[0][1] - box[1][1])
             b = math.hypot(box[1][0] - box[2][0], box[1][1] - box[2][1])
 
+            if a == 0 or b == 0:
+                continue
+
             ratio = a / b if a < b else b / a
             correct_ratio = 210.0 / 297.0
             ratio_deviation = abs((ratio - correct_ratio) / correct_ratio)
@@ -284,7 +290,10 @@ class PenisController(FlightController):
                 # print a, b
                 #cv2.imshow('info', annot)
                 #return annot, None, None
+                cv2.drawContours(annot, [box], -1, (0, 0, 64), 4)
                 continue
+            else:
+                cv2.drawContours(annot, [box], -1, (0, 0, 255), 4)
 
             # Get biggest contour
             tmp = thresh.copy()
@@ -327,10 +336,10 @@ class PenisController(FlightController):
             # get circle circularity
             circumference = cv2.arcLength(contour, True)
             area = cv2.contourArea(contour)
-            circularity = circumference ** 2 / (4 * math.pi * area)
+            circularity = circumference ** 2 / (4 * math.pi * area) if area !=0 else 999
 
             if circularity > 1.2:
-                #print "circularity of inner circle too low ({} < 1.2)!".format(circularity)
+                #print "circularity of inner circle too low ({} > 1.2)!".format(circularity)
                 #return annot, None, None
                 continue
 
