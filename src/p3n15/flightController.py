@@ -160,20 +160,10 @@ class PenisController(FlightController):
 
         NAVC = self.drone.NavDataCount
 
-        pos_r_soll = 0
-        pos_r_ist = 0
-        pos_r_int = 0
-        pos_r_vel = 0
-        pos_d_soll = 0
-        pos_d_ist = 0
-        pos_d_int = 0
-        pos_d_vel = 0
-        pos_d_phi = 0
-
-        self.Kp_r = 100/10000.0
-        self.Kd_r = -10/10000.0
-        self.Kp_d = 5/10000.0
-        self.Kd_d = -50/10000.0
+        last_x = 0
+        last_y = 0
+        last_w = 100
+        t_speed = 0
 
         last_video_timestamp = self.drone.VideoDecodeTimeStamp
 
@@ -196,29 +186,44 @@ class PenisController(FlightController):
 
                         print "x, y, w: ", x, y, w
 
-                        turn = 0
-                        if x < -100:
-                            turn = -0.1
-                        elif x > 100:
-                            turn = 0.1
-
-                        up = 0
-                        if y > 100:
-                            up = 0.1
-                        elif y < -100:
-                            up = -0.1
-
-                        forward = 0
-                        if w > 200:
-                            forward = -0.1
-                        elif w < 100:
-                            forward = 0.1
-
                         right = 0
 
+
+                        t_err = x
+                        t_speed = 0.99 * t_speed + 0.01 * (x - last_x)
+                        print t_speed
+
+                        turn = 0.002 * t_err #- 0.01 * t_speed
+
+                        # compensate during let turns
+                        #turn -= 0.03
+                        #if turn < 0:
+                        #    right = 0.1
+
+                        #turn = 0
+                        #if x < -100:
+                        #    turn = -0.1
+                        #elif x > 100:
+                        #    turn = 0.1
+
+                        up = 0
+                        if y > 200:
+                            up = -0.1
+                        elif y < 200:
+                            up = 0.1
+
+
+                        forward = 0
+                        if w > 120:
+                            forward = -0.07
+                        elif w < 100:
+                            forward = 0.15
                         print "right, forward, up, turn:", right, forward, up, turn
 
-                        self.drone.move(right, forward, up, turn)
+                        #self.drone.relMove(right, forward, up, turn, 0, 0)
+                        self.drone.move(0, forward, 0, turn)
+                        #self.drone.relMove(0,0,0,0)
+
                     else:
                         print "hover... "
                         self.drone.stop()
