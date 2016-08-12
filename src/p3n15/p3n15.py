@@ -248,6 +248,7 @@ if __name__ == '__main__':
     drone.startup()
     drone.useMDemoMode(False)
     drone.initCamera(camera = P3N15.GROUNDCAM)
+    drone.setSpeed(0.3)
     drone.getNDpackage(["demo","pressure_raw","altitude","magneto","wifi","raw_measures","gyros_offsets",]) # Packets to decoded
 
     run(drone)

@@ -4,7 +4,7 @@ import numpy
 import math
 import time
 import sys
-import pid from pid
+from pid import PID
 
 # ------------------------
 # -- MARK: Controller Classes
@@ -137,11 +137,11 @@ class PenisController(FlightController):
         FlightController.__init__(self, drone)
         self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
-        cv2.namedWindow('config', cv2.WINDOW_NORMAL)
-        cv2.createTrackbar("Yaw P", 'config', 50, 100, self.onTrackbarYawPChange)
-        cv2.createTrackbar("Yaw D", 'config', 0, 100, self.onTrackbarYawDChange)
-        cv2.createTrackbar("Dist P", 'config', 20, 100, self.onTrackbarDistPChange)
-        cv2.createTrackbar("Dist D", 'config', 5, 100, self.onTrackbarDistDChange)
+        #cv2.namedWindow('config', cv2.WINDOW_NORMAL)
+        #cv2.createTrackbar("Yaw P", 'config', 50, 100, self.onTrackbarYawPChange)
+        #cv2.createTrackbar("Yaw D", 'config', 0, 100, self.onTrackbarYawDChange)
+        #cv2.createTrackbar("Dist P", 'config', 20, 100, self.onTrackbarDistPChange)
+        #cv2.createTrackbar("Dist D", 'config', 5, 100, self.onTrackbarDistDChange)
 
     def onTrackbarYawPChange(self, value):
         self.Kp_r = value / 10000.0
@@ -170,10 +170,10 @@ class PenisController(FlightController):
         pos_d_vel = 0
         pos_d_phi = 0
 
-        self.Kp_r = 50/10000.0
-        self.Kd_r = 0/10000.0
-        self.Kp_d = 20/1000.0
-        self.Kd_d = 5/10000.0
+        self.Kp_r = 100/10000.0
+        self.Kd_r = -10/10000.0
+        self.Kp_d = 5/10000.0
+        self.Kd_d = -50/10000.0
 
         last_video_timestamp = self.drone.VideoDecodeTimeStamp
 
@@ -187,32 +187,35 @@ class PenisController(FlightController):
                     t_diff = self.drone.VideoDecodeTimeStamp - last_video_timestamp
                     last_video_timestamp = self.drone.VideoDecodeTimeStamp
 
-                    self.drone.outputImage, dyaw, distphi, dist = self.analyzeImage(self.drone.VideoImage)
+                    self.drone.outputImage, x, y, w = self.analyzeImage(self.drone.VideoImage)
 
-                    if dyaw is None:
+                    if not (x is None or y is None or w is None):
+
+                        turn = 0
+                        if x < -100:
+                            turn = -0.1
+                        elif x > 100:
+                            turn = 0.1
+
+                        up = 0
+                        if y > 100:
+                            up = 0.1
+                        elif y < -100:
+                            up = -0.1
+
+                        forward = 0
+                        if w > 200:
+                            forward = -0.1
+                        elif w < 100:
+                            forward = 0.1
+
+                        right = 0
+
+                        print right, forward, up, turn
+
+                        self.drone.move(right, forward, up, turn)
+                    else:
                         self.drone.stop()
-
-                    if dyaw is not None:
-                        #yaw_int += (yaw_ist - yaw_soll) * t_diff
-
-                        dyaw -= math.pi/2
-                        if dyaw > math.pi:
-                            dyaw -= 2*math.pi
-                        if dyaw < -math.pi:
-                            dyaw += 2*math.pi
-
-                        #print "angle: {}, dist: {}".format(dyaw * 180.0 / math.pi, dist)
-
-                        r_diff_to_last_time = dyaw - pos_r_ist
-                        pos_r_vel = 0.99 * pos_r_vel + 0.01 * r_diff_to_last_time
-                        pos_r_ist = dyaw
-
-                    if dist is not None:
-                        dist_diff_to_last_time = dist - pos_d_ist
-                        pos_d_vel = 0 * pos_d_vel + 1 * dist_diff_to_last_time
-                        pos_d_ist = dist
-                        pos_d_phi = distphi
-                        print "pos_d_vel:",pos_d_vel
 
                     #print "Image Recognition Cycle: ", time.time() - t_start
                 except:
@@ -222,31 +225,6 @@ class PenisController(FlightController):
             if self.drone.NavDataCount != NAVC:
                 # new nav data arrived
                 NAVC = self.drone.NavDataCount
-
-                try:
-                    #pos_r_vel = self.drone.NavData["raw_measures"][1][2] # gyro_z, filtered (LSBs)
-                    #print "RawMeasures [X,Y,Z]:          " + str(self.drone.NavData["raw_measures"][1])
-
-                    #print pos_r_vel
-
-                    pos_r_err = pos_r_soll - pos_r_ist
-                    pos_d_err = pos_d_soll - pos_d_ist
-                    pos_r_out = self.Kp_r * pos_r_err + self.Kd_r * pos_r_vel
-                    pos_d_out = self.Kp_d * pos_d_err + self.Kd_d * pos_d_vel
-
-                    pos_x_out = -pos_d_out * math.cos( pos_d_phi )
-                    pos_y_out = pos_d_out * math.sin( pos_d_phi )
-
-                    print "D:", pos_d_out, "R: ", pos_r_out, "X: ", pos_x_out, "Y: ", pos_y_out
-
-                    self.drone.move(0,0, 0, pos_r_out)
-                    #self.drone.move(pos_x_out, pos_y_out, 0, pos_r_out)
-                    self.drone.move(pos_x_out, pos_y_out, 0, 0)
-
-                except:
-                    print sys.exc_info()
-
-            cv2.waitKey(1)
 
         else:
             print "Ended Autonomous Face Flight"
@@ -390,7 +368,9 @@ class PenisController(FlightController):
 
             phi = math.atan2(y,x)
 
-            return annot, angle, phi, dist
+            w = a if a > b else b
+
+            return annot, x, y, w
 
     def calcVectorDirection(self, circleCenter, boundingCenter, indicatorLine):
         (x_c, y_c) = circleCenter

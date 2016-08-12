@@ -1071,7 +1071,7 @@ def vCapture(VidPipePath, parent_pipe):
 					if debugV:	print "Codec failure"
 					parent_pipe.send(("reset",0,0,0))
 					commitsuicideV = True
-		if codecOK:
+		if codecOK and image is not None:
 			if not (imageXsize == image.shape[1]) or not (imageYsize == image.shape[0]):
 				cv2.destroyAllWindows()
 				imageYsize, imageXsize = image.shape[:2]
@@ -2066,7 +2066,7 @@ if __name__ == "__main__":
 	time.sleep(0.5)											# Give it some time to fully awake
 
 	drone.printBlue("Battery: "+str(drone.getBattery()[0])+"%  "+str(drone.getBattery()[1]))	# Gives a battery-status
-
+	drone.setSpeed(0.2)
 	stop = False
 	while not stop:
 		key = drone.getKey()
