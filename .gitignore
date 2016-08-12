@@ -3,3 +3,6 @@ Icon
 
 # Python stuff
 *.pyc
+
+# PyCharm Project
+.idea/
