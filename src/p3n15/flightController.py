@@ -261,8 +261,12 @@ class PenisController(FlightController):
             return thresh, None, None, None
 
         # iterate over contours
-        contours_temp = contours
-        for contour0 in sorted(contours_temp, key=cv2.contourArea, reverse=True):
+        all_the_contours = sorted(contours, key=cv2.contourArea, reverse=True)
+        for contour0 in all_the_contours:
+
+            if cv2.contourArea(contour0) < 20:
+                continue
+
             # clip to rotated rectangle
             rect = cv2.minAreaRect(contour0)
             box = cv2.cv.BoxPoints(rect)
