@@ -191,6 +191,8 @@ class PenisController(FlightController):
 
                     if not (x is None or y is None or w is None):
 
+                        print "x, y, w: ", x, y, w
+
                         turn = 0
                         if x < -100:
                             turn = -0.1
@@ -211,7 +213,7 @@ class PenisController(FlightController):
 
                         right = 0
 
-                        print right, forward, up, turn
+                        print "right, forward, up, turn:", right, forward, up, turn
 
                         self.drone.move(right, forward, up, turn)
                     else:
@@ -227,7 +229,7 @@ class PenisController(FlightController):
                 NAVC = self.drone.NavDataCount
 
         else:
-            print "Ended Autonomous Face Flight"
+            print "Ended Autonomous Flight"
 
     def analyzeImage(self, img):
         hsl = cv2.cvtColor(img, cv2.COLOR_RGB2HLS_FULL)[:, :, 1]
@@ -251,18 +253,18 @@ class PenisController(FlightController):
 
         # iterate over contours
         contours_temp = contours
-        for contour in sorted(contours_temp, key=cv2.contourArea, reverse=True):
+        for contour0 in sorted(contours_temp, key=cv2.contourArea, reverse=True):
 
             # clip to rotated rectangle
-            rect = cv2.minAreaRect(contour)
+            rect = cv2.minAreaRect(contour0)
             box = cv2.cv.BoxPoints(rect)
             box = numpy.int0(box)
             mask = 0 * hsl
             cv2.drawContours(mask, [box], -1, (255), -1)
-            hsl = cv2.bitwise_and(hsl, mask) + cv2.bitwise_not(0 * mask, mask)
+            hsl_masked = cv2.bitwise_and(hsl, mask) + cv2.bitwise_not(0 * mask, mask)
 
             # binary image
-            blur = cv2.GaussianBlur(hsl, (9, 9), 100)
+            blur = cv2.GaussianBlur(hsl_masked, (9, 9), 100)
             flag, thresh = cv2.threshold(blur, 200, 255, cv2.THRESH_BINARY)
             thresh = 255 - thresh
             # thresh_annot = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
