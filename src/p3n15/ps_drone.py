@@ -1172,7 +1172,7 @@ def mainloopV(DroneIP, VideoPort, VidPipePath, parent_pipe, parentPID):
 					rawVideoFrame, VidStreamSnippet	= "", ""
 					VidStreamSnippetAvalible		= False
 					iFrame, lastIFrame				= False, False
-					FrameCount, reset				= False, 0, True
+					FrameCount, reset				= 0, True #False, 0, True
 					unsureMode, searchCodecTime		= True, 0
 					burstFrameCount					= 0
 					resetCount						+= 1
