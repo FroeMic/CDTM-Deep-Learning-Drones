@@ -35,26 +35,26 @@ To steer the drone, make sure the pygame window with the video feed is active.
 
 
 
-| Key        | Action          |
-| ---------- |---------------- |
-| GENERAL    |                 |
-| ---------- |---------------- |
-| SPACE      | start / land    |
-| ESC        | shutdown        |
-| C          | toggle camera   |
-| M          | make screenshot |
-| P          | autonomous mode |
-| ---------- |---------------- |
-| MOVEMENT   |                 |
-| ---------- |---------------- |
-| W          | forward         |
-| S          | backward        |
-| A          | left            |
-| D          | right           |
-| Q          | rotate left     |
-| E          | rotate right    |
-| UP         | move up         |
-| DOWN       | move down       |
+| Key          | Action          |
+| ------------ |---------------- |
+| **GENERAL**  |                 |
+| ------------ |---------------- |
+| SPACE        | start / land    |
+| ESC          | shutdown        |
+| C            | toggle camera   |
+| M            | make screenshot |
+| P            | autonomous mode |
+|              |                 |
+| **MOVEMENT** |                 |
+| ------------ |---------------- |
+| W            | forward         |
+| S            | backward        |
+| A            | left            |
+| D            | right           |
+| Q            | rotate left     |
+| E            | rotate right    |
+| UP           | move up         |
+| DOWN         | move down       |
 
 ### 2.1 Autonomous Flight
 
