@@ -1,3 +1,9 @@
+'''
+ PID Controll class inspired by the rainbow_dash of the
+ CDTM Drone Elective 2015.
+ https://github.com/CDTM/Autonomous-Drones/tree/master/rainbow_dash
+'''
+
 class PID:
     ''' PID Controller '''
     def __init__(self, Kp=0.25, Kd=0.25, Ki=0.05):

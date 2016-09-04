@@ -6,7 +6,7 @@ import pygame
 import numpy
 
 from ps_drone import Drone
-from flightController import PenisController as controller
+from flightController import P3N15Controller as controller
 
 
 # =======================================

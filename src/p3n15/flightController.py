@@ -15,10 +15,10 @@ class FlightController(threading.Thread):
     ''' Base class to control the drone autonomously.
 
         Implement
-            * newInstance(),
+            * newInstance()
             * run()
-            * terminate()
-        in all subclasses.
+            * terminate() (optional)
+        in subclasses.
     '''
     def __init__(self, drone):
         threading.Thread.__init__(self)
@@ -26,9 +26,11 @@ class FlightController(threading.Thread):
         self.finished = False
 
     def newInstance(self):
+        ''' Threads can only by started once. Provide a new instance. '''
         return FlightController(self.drone)
 
     def run(self):
+        ''' Each FlightController is run as a separate thread. '''
         i = 0
         while not self.finished:
             i = i + 1
@@ -36,6 +38,7 @@ class FlightController(threading.Thread):
             print "Ended Autonomous Flight after %d cycles" %(i)
 
     def terminate(self):
+        ''' Called by the main thread to terminate the flightController. '''
         self.finished = True
 
     def saveImage(self, img, path="img/", title=None):
@@ -48,7 +51,13 @@ class FlightController(threading.Thread):
 
 # Face controller class
 class FaceController(FlightController):
-    ''' Controller to follow a face autonomously.'''
+    ''' Controller to follow a face autonomously.
+
+        IMPORTANT:
+        The PIDs are not calibrated at all due to a lack of time.
+        If you want to used this controller, try to calibrate
+        the PIDs one after another. Good Luck!
+    '''
     def __init__(self, drone):
         FlightController.__init__(self, drone)
         self.face_cascade = cv2.CascadeClassifier('lib/haarcascade_frontalface_default.xml')
@@ -129,14 +138,15 @@ class FaceController(FlightController):
         desiredBoxHeight = 75
         return (h - desiredBoxHeight) / desiredBoxHeight
 
-# Penis controller class
-class PenisController(FlightController):
-    ''' Controller to follow a Penis autonomously.'''
+# Male symbol marker controller class
+class P3N15Controller(FlightController):
+    ''' Controller to follow a male-symbol autonomously.'''
 
     def __init__(self, drone):
         FlightController.__init__(self, drone)
         self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
+        #Trackbars to configure pid values
         #cv2.namedWindow('config', cv2.WINDOW_NORMAL)
         #cv2.createTrackbar("Yaw P", 'config', 50, 100, self.onTrackbarYawPChange)
         #cv2.createTrackbar("Yaw D", 'config', 0, 100, self.onTrackbarYawDChange)
@@ -153,7 +163,7 @@ class PenisController(FlightController):
         self.Kd_d = value / 10000.0
 
     def newInstance(self):
-        return PenisController(self.drone)
+        return P3N15Controller(self.drone)
 
     def run(self):
         IMC = self.drone.VideoImageCount
@@ -241,6 +251,7 @@ class PenisController(FlightController):
             print "Ended Autonomous Flight"
 
     def analyzeImage(self, img):
+        ''' Image detection magic -> Code Quality = Hackathon ;-)'''
         hsl = cv2.cvtColor(img, cv2.COLOR_RGB2HLS_FULL)[:, :, 1]
         # cv2.imshow('hls', hsl)
 
@@ -406,15 +417,15 @@ class PenisController(FlightController):
         else:
             return 1
 
-
     def turnDrone(self,angle):
         deg = math.degree(angle)
         self.turnAngle(deg, 1)
 
 if __name__ == "__main__":
-    penis = PenisController(None)
+    ''' Quick and dirty debugging goes here'''
+    CTRL = P3N15Controller(None)
     img = cv2.imread("img/up.png")
-    img, x, y = penis.analyzeImage(img)
+    img, x, y = CTRL.analyzeImage(img)
     print img
     if img is not None:
         cv2.imshow('info', img)
