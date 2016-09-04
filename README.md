@@ -1,3 +1,6 @@
+
+# IMPORTANT: This repository is not maintained anymore.
+
 # CDTM-Deep-Learning-Drones
 Course Material for CDTM Deep Learning Drones Course
 
@@ -55,5 +58,3 @@ http://kitti.is.tue.mpg.de/kitti/devkit_object.zip
 ### Follow Digits Tutorial
 Follow the Digits Object Detection Tutorial.
 [https://github.com/NVIDIA/DIGITS/tree/master/examples/object-detection]
-
-
