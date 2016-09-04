@@ -1,9 +1,9 @@
-# p3n15
+# == p3n15 ==
 
-The project makes use of the PS-Drone library (http://www.playsheep.de/drone/), pygame (http://www.pygame.org/hifi.html) and OpenCV (http://opencv.org/) to control the AR.Drone 2.0.
-If a 'male' symbol is detected in the image of the front camera of the drone, the drone tries to follow it. If the symbol is near the edges of the image the drone turns in order to center it. If the image box is to small / big in comparison to the predefined size the drone moves forward / backward.
+P3n15 makes use of the PS-Drone library (http://www.playsheep.de/drone/), pygame (http://www.pygame.org/hifi.html) and OpenCV (http://opencv.org/) to control the AR.Drone 2.0.
+When a marker is detected in the image of the front camera, the drone tries to follow it. If the symbol is near the edges of the image the drone turns in order to center it. If the image box is to small / big in comparison to the predefined size the drone moves forward / backward.
 
-**Note:** To download the files we recommend **NOT** to checkout the entire repository as it is about 400 megabytes in size. Rather do one of the following:
+**Note:** To download the files we recommend **NOT** to checkout the entire repository as it is about 400 megabytes in size (we added a lot of training images). Rather try one of the following:
 
 Either clone the latest commit (still 140 megabytes)
 ```
@@ -55,13 +55,12 @@ Press **P** to switch into autonomous mode. The drone will analyse the image for
 **Note:** *Pressing any key during autonomous flight will switch to manual mode.*
 
 #### 2.1.1 Using a different Controller
-The p3n15 is designed to easily switch the controller handling the autonomous flight. Controllers are implemented in the flightController.py and should be subclasses of the FlightController class defined there.
+P3n15 is designed to easily switch the controller handling the autonomous flight. Controllers are implemented in  flightController.py and should be subclasses of the FlightController class defined there.
 
 To change the controller used for autonomous flight simply import the desired controller at the beginning of the p3n15.py file.
 ```Python
 from flightController import P3n15Controller as controller
 ```
-
 
 ## 3.0 Issues
 During development we faced several time and/or library related issues which are described in the following. Please be aware that the entire project was done in a hackathon style manner with no extensive testing. The following list of issues might not be complete.
