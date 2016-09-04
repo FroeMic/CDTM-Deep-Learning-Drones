@@ -33,20 +33,13 @@ To start the drone, connect to it's WiFi and start the p3n15.py script.
 ### 2.1 Manual Controls
 To steer the drone, make sure the pygame window with the video feed is active.
 
-
-
 | Key          | Action          |
-| ------------ |---------------- |
-| **GENERAL**  |                 |
 | ------------ |---------------- |
 | SPACE        | start / land    |
 | ESC          | shutdown        |
 | C            | toggle camera   |
 | M            | make screenshot |
 | P            | autonomous mode |
-|              |                 |
-| **MOVEMENT** |                 |
-| ------------ |---------------- |
 | W            | forward         |
 | S            | backward        |
 | A            | left            |
@@ -57,9 +50,21 @@ To steer the drone, make sure the pygame window with the video feed is active.
 | DOWN         | move down       |
 
 ### 2.1 Autonomous Flight
+Press **P** to switch into autonomous mode. The drone will analyse the image for a marker and follow it using a simple track and follow approach.
+
+**Note:** *Pressing any key during autonomous flight will switch to manual mode.*
+
+#### 2.1.1 Using a different Controller
+The p3n15 is designed to easily switch the controller handling the autonomous flight. Controllers are implemented in the flightController.py and should be subclasses of the FlightController class defined there.
+
+To change the controller used for autonomous flight simply import the desired controller at the beginning of the p3n15.py file.
+```Python
+from flightController import P3n15Controller as controller
+```
+
 
 ## 3.0 Issues
-During development we faced several time and/or library related issues which are described in the following.
+During development we faced several time and/or library related issues which are described in the following. Please be aware that the entire project was done in a hackathon style manner with no extensive testing. The following list of issues might not be complete.
 
 ### 3.1 pygame vs PS-Drone
 In order to steer the drone manually we used pygame to detect keydown and keyup events. We faced the issue that initalising pygame before ps-drone rendered certain functions of the ps-drone library useless. Especially switching to the bottom facing camera was not possible then. Additionally, we could not access the raw nav-data of the drone due to this issue.
