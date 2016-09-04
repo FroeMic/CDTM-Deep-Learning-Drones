@@ -33,19 +33,19 @@ To start the drone, connect to it's WiFi and start the p3n15.py script.
 ### 2.1 Manual Controls
 To steer the drone, make sure the pygame window with the video feed is active.
 
-#### General
+
 
 | Key        | Action          |
+| ---------- |---------------- |
+| GENERAL    |                 |
 | ---------- |---------------- |
 | SPACE      | start / land    |
 | ESC        | shutdown        |
 | C          | toggle camera   |
 | M          | make screenshot |
 | P          | autonomous mode |
-
-#### Movement
-
-| Key        | Action          |
+| ---------- |---------------- |
+| MOVEMENT   |                 |
 | ---------- |---------------- |
 | W          | forward         |
 | S          | backward        |
