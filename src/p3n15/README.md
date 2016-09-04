@@ -3,6 +3,16 @@
 The project makes use of the PS-Drone library (http://www.playsheep.de/drone/), pygame (http://www.pygame.org/hifi.html) and OpenCV (http://opencv.org/) to control the AR.Drone 2.0.
 If a 'male' symbol is detected in the image of the front camera of the drone, the drone tries to follow it. If the symbol is near the edges of the image the drone turns in order to center it. If the image box is to small / big in comparison to the predefined size the drone moves forward / backward.
 
+**Note:** To download the files we recommend **NOT** to checkout the entire repository as it is about 400 megabytes big. Rather do one of the following:
+Either clone just the latest commit (still 140 megabytes)
+```
+git clone --depth=1 https://github.com/FroeMic/CDTM-Deep-Learning-Drones.git
+```
+or just download the src directory using svn
+```
+svn checkout https://github.com/FroeMic/CDTM-Deep-Learning-Drones/trunk/src
+```
+
 ## 1.0 Requirements
 
 To run this project the following libraries are required:
@@ -12,17 +22,7 @@ To run this project the following libraries are required:
 * Pygame
 * PS-Drone
 
-*Note: We were not able to run all libraries on either MacOS Sierra or Windows 10. Installing Ubuntu on a Virtual Machine provided a swift solution for setting up a suitable development environment.*
-
-To download the files we recommend **NOT** to checkout the entire repository as it is about 400 megabytes big. Rather do one of the following:
-Either clone just the latest commit (still 140 megabytes)
-```
-git clone --depth=1 https://github.com/FroeMic/CDTM-Deep-Learning-Drones.git
-```
-or just download the src directory using svn
-```
-svn checkout https://github.com/FroeMic/CDTM-Deep-Learning-Drones/trunk/src
-```
+**Note:** *We were not able to run all libraries on either MacOS Sierra or Windows 10. Installing Ubuntu on a Virtual Machine provided a swift solution for setting up a suitable development environment.*
 
 ## 2.0 Usage
 With p3n15 implementation prioritises the safety of the user and the environment. Hence, manual control is always active and will override any autonomous flight commands. The drone automatically starts in the manual mode.
