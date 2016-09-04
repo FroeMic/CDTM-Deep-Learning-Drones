@@ -1,7 +1,7 @@
 # Ignore OS X folder icon eding with \r
 Icon
 
-.DS_Store
+*.DS_Store
 
 # Python stuff
 *.pyc
