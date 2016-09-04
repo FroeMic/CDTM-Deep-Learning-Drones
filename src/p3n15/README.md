@@ -3,12 +3,13 @@
 The project makes use of the PS-Drone library (http://www.playsheep.de/drone/), pygame (http://www.pygame.org/hifi.html) and OpenCV (http://opencv.org/) to control the AR.Drone 2.0.
 If a 'male' symbol is detected in the image of the front camera of the drone, the drone tries to follow it. If the symbol is near the edges of the image the drone turns in order to center it. If the image box is to small / big in comparison to the predefined size the drone moves forward / backward.
 
-**Note:** To download the files we recommend **NOT** to checkout the entire repository as it is about 400 megabytes big. Rather do one of the following:
-Either clone just the latest commit (still 140 megabytes)
+**Note:** To download the files we recommend **NOT** to checkout the entire repository as it is about 400 megabytes in size. Rather do one of the following:
+
+Either clone the latest commit (still 140 megabytes)
 ```
 git clone --depth=1 https://github.com/FroeMic/CDTM-Deep-Learning-Drones.git
 ```
-or just download the src directory using svn
+or **just download the src directory using svn**
 ```
 svn checkout https://github.com/FroeMic/CDTM-Deep-Learning-Drones/trunk/src
 ```
@@ -31,21 +32,46 @@ To start the drone, connect to it's WiFi and start the p3n15.py script.
 
 ### 2.1 Manual Controls
 To steer the drone, make sure the pygame window with the video feed is active.
+
+#### General
+
+| Key        | Action          |
+| ---------- |---------------- |
+| SPACE      | start / land    |
+| ESC        | shutdown        |
+| C          | toggle camera   |
+| M          | make screenshot |
+| P          | autonomous mode |
+
+#### Movement
+
+| Key        | Action          |
+| ---------- |---------------- |
+| W          | forward         |
+| S          | backward        |
+| A          | left            |
+| D          | right           |
+| Q          | rotate left     |
+| E          | rotate right    |
+| UP         | move up         |
+| DOWN       | move down       |
+
 ### 2.1 Autonomous Flight
 
 ## 3.0 Issues
 During development we faced several time and/or library related issues which are described in the following.
 
-### pygame vs PS-Drone
-In order to steer the drone manually we used pygame to detect keydown and keyup events. We faced the issue that initalising pygame before ps-drone rendered certain functions of the ps-drone library useless. Especially switching to the bottom facing camera was not possible then.
+### 3.1 pygame vs PS-Drone
+In order to steer the drone manually we used pygame to detect keydown and keyup events. We faced the issue that initalising pygame before ps-drone rendered certain functions of the ps-drone library useless. Especially switching to the bottom facing camera was not possible then. Additionally, we could not access the raw nav-data of the drone due to this issue.
 
-### Drone Flight Precision
+### 3.2 Drone Flight Precision
 Our original approach was to use the bottom facing camera of the drone to detect markers on the floor. These markers should encode the direction of the next marker. When a marker is detected the drone should hover and turn above the marker and continue the flight in the encoded direction.
 However, it was not possible to rotate the drone while keeping the marker centered. Turning always created a slight drift, moving the marker out of the picture. Paired with the small resolution of the bottom facing camera it was not possible to develop a working solution in the given time.
 
-### PID Controller
+### 3.3 PID Controller
 A PID Controller (Proportional–Integral–Derivative Controller) is a control loop feedback mechanism taking error terms into account to steer the drone in autonomous flight. The controller for our final track-and-follow solution was developed in a rapid manner as we concluded our original approach was feasible the night before the 'final race'. As such, it is rather a 'P Controller' supporting only turning and forward / backward movement.
-*Note: Starting the autonomous flight in the required height is critical, if one wants to fly through objects such a soccer goals. ;-)*
 
-### Symbol Detection Reliability
+**Note:** *Starting the autonomous flight in the required height is critical, if one wants to fly through objects such a soccer goals. ;-)*
+
+### 3.4 Symbol Detection Reliability
 Contrary to most other teams, we decided to implement detection algorithm for a custom symbol. As we wanted to encode a direction we decided to use the 'male' symbol printed on a white DIN-A4 sheet as our marker. Factors influencing the detection reliability are the contrast between the background (dark) and DIN-A4 sheet (white) with the symbol printed on it (dark). Only white areas close to the DIN Format are processed.
